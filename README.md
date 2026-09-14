@@ -1,4 +1,4 @@
-﻿# hoko-marketplace
+﻿# hoko-marketplace!
 
 Para criar um marketplace web moderno, confiável e focado em conversão, a melhor abordagem é uma **paleta equilibrada com base neutra e detalhes vibrantes**.
 
