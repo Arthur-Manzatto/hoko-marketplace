@@ -1,0 +1,60 @@
+*{
+    margin: 0px;
+    padding: 0px;
+}
+body{
+    background-color: #F8FAFC;
+}
+
+.logo {
+    max-height: 35px;
+    width: auto;
+}
+
+.input-custom {
+    border: 1px solid #dee2e6;
+    border-radius: 50px;
+    overflow: hidden; 
+}
+.input-custom .input-group-text {
+    background-color: #fff;
+    border: none;
+    padding-left:  15px;
+}
+
+.input-custom .form-control {
+    border: none;
+    box-shadow: none;
+    padding: 22px;
+}
+
+.input-custom .btn-custom {
+    background-color: #FE6901; 
+    color: #fff;
+    font-weight: 600;
+    border: none;
+    border-radius: 0;
+    padding: 10px 25px;
+}
+
+.login-custom {
+    background-color: #FE6901; 
+    color: #fff;
+    border: none;
+    border-radius: 50px;
+    padding: 7px 15px;
+
+}
+
+.login-custom:hover {
+    background-color: #d96700;
+    color: #fff;
+    text-decoration: none;
+}
+
+.car-custom i{
+    font-size: 23px;
+}
+.car-custom i:hover{
+    color:#013095 ;
+}
