@@ -1,54 +1,100 @@
 package com.hokomarketplace.hokoapi.services;
 
+import com.hokomarketplace.hokoapi.dto.CategoryRequestDTO;
 import com.hokomarketplace.hokoapi.entities.Category;
 import com.hokomarketplace.hokoapi.repositories.CategoryRepository;
+import com.hokomarketplace.hokoapi.services.exceptions.DatabaseException;
 import com.hokomarketplace.hokoapi.services.exceptions.ResourceNotFoundException;
 import com.hokomarketplace.hokoapi.utils.SlugUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class CategoryService {
 
     @Autowired
-    private final CategoryRepository repository;
+    private CategoryRepository repository;
 
-    public CategoryService(CategoryRepository repository) {
-        this.repository = repository;
-    }
-
+    @Transactional(readOnly = true)
     public Category findBySlug(String slug){
-        return repository.findBySlug(slug).orElseThrow(() -> new ResourceNotFoundException(slug));
+        return repository.findBySlug(slug)
+                .orElseThrow(() -> new ResourceNotFoundException(slug));
     }
 
-    public Page<Category> find(String search, Pageable pageable){
-        if (search == null || search.isBlank()) {
-            return repository.findAll(pageable);
+    @Transactional(readOnly = true)
+    public Page<Category> findAll(String search, Pageable pageable){
+        if (search != null && !search.isBlank()) {
+            String slug = SlugUtils.slugify(search);
+            return repository.findBySlugContainingIgnoreCase(slug, pageable);
         }
-        String slug = SlugUtils.slugify(search);
-        return repository.findBySlugContainingIgnoreCase(slug, pageable);
+        return repository.findAll(pageable);
     }
 
-    public Category insert(Category obj) {
-        obj.setSlug(SlugUtils.slugify(obj.getName()));
-        return repository.save(obj);
+    @Transactional
+    public Category insert(CategoryRequestDTO dto) {
+        Category category = new Category();
+        category.setName(dto.name().trim());
+        category.setSlug(generateUniqueSlug(dto.name().trim()));
+        try {
+            return repository.save(category);
+        } catch (DataIntegrityViolationException e) {
+            throw new DatabaseException("Failed to create category: duplicate name or slug");
+        }
     }
 
-    public void deleteBySlug(String slug) {
-        Category category = repository.findBySlug(slug).orElseThrow(() -> new ResourceNotFoundException(slug));
-        repository.delete(category);
+    @Transactional
+    public Category update(String slug, CategoryRequestDTO dto) {
+        Category entity = findBySlug(slug);
+        String newName = dto.name().trim();
+
+        if (entity.getName().equals(newName)) {
+            return entity;
+        }
+        entity.setName(newName);
+        entity.setSlug(generateUniqueSlug(newName, entity.getId()));
+
+        try {
+            return repository.save(entity);
+        } catch (DataIntegrityViolationException e) {
+            throw new DatabaseException("Failed to update category: duplicate name or slug");
+        }
     }
 
-    public Category updateBySlug(String slug, Category obj) {
-        Category entity = repository.findBySlug(slug).orElseThrow(() -> new ResourceNotFoundException(slug));
-        updateData(entity, obj);
-        return repository.save(entity);
+    @Transactional
+    public void delete(String slug) {
+        Category category = findBySlug(slug);
+        try {
+            repository.delete(category);
+        } catch (DataIntegrityViolationException e) {
+            throw new DatabaseException("Cannot delete category: it may be referenced by other entities");
+        }
     }
 
-    private void updateData(Category entity, Category obj) {
-        entity.setName(obj.getName());
+    private String generateUniqueSlug(String name) {
+        return generateUniqueSlug(name, null);
+    }
+
+    private String generateUniqueSlug(String name, java.util.UUID excludeId) {
+        String baseSlug = SlugUtils.slugify(name);
+        String slug = baseSlug;
+        int counter = 1;
+
+        while (slugExists(slug, excludeId)) {
+            slug = baseSlug + "-" + counter;
+            counter++;
+        }
+
+        return slug;
+    }
+
+    private boolean slugExists(String slug, java.util.UUID excludeId) {
+        return repository.findBySlug(slug)
+                .filter(cat -> excludeId == null || !cat.getId().equals(excludeId))
+                .isPresent();
     }
 
 }

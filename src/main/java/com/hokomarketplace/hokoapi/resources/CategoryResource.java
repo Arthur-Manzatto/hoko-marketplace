@@ -1,7 +1,10 @@
 package com.hokomarketplace.hokoapi.resources;
 
+import com.hokomarketplace.hokoapi.dto.CategoryRequestDTO;
+import com.hokomarketplace.hokoapi.dto.CategoryResponseDTO;
 import com.hokomarketplace.hokoapi.entities.Category;
 import com.hokomarketplace.hokoapi.services.CategoryService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -16,44 +19,40 @@ import java.net.URI;
 public class CategoryResource {
 
     @Autowired
-    private final CategoryService service;
-
-    public CategoryResource(CategoryService service) {
-        this.service = service;
-    }
+    private CategoryService service;
 
     @GetMapping
-    public ResponseEntity<Page<Category>> findAll(
-            @RequestParam(required = false) String search,
-            Pageable pageable) {
-        Page<Category> page = service.find(search, pageable);
+    public ResponseEntity<Page<CategoryResponseDTO>> findAll(@RequestParam(required = false) String search, Pageable pageable) {
+        Page<CategoryResponseDTO> page = service.findAll(search, pageable).map(CategoryResponseDTO::new);
         return ResponseEntity.ok(page);
     }
 
     @GetMapping("/{slug}")
-    public ResponseEntity<Category> findBySlug(@PathVariable String slug) {
+    public ResponseEntity<CategoryResponseDTO> findBySlug(@PathVariable String slug) {
         Category obj = service.findBySlug(slug);
-        return ResponseEntity.ok().body(obj);
+        return ResponseEntity.ok(new CategoryResponseDTO(obj));
     }
 
     @PostMapping
-    public ResponseEntity<Category> insert(@RequestBody Category obj) {
-        obj = service.insert(obj);
-        URI uri = ServletUriComponentsBuilder.fromCurrentRequest().path("/{slug}").buildAndExpand(obj.getSlug()).toUri();
-        return ResponseEntity.created(uri).body(obj);
-    }
-
-    @DeleteMapping(value = "/{slug}")
-    public ResponseEntity<Void> deleteBySlug(@PathVariable String slug) {
-        service.deleteBySlug(slug);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<CategoryResponseDTO> insert(@Valid @RequestBody CategoryRequestDTO dto) {
+        Category category = service.insert(dto);
+        URI uri = ServletUriComponentsBuilder.fromCurrentRequest().path("/{slug}").buildAndExpand(category.getSlug()).toUri();
+        return ResponseEntity.created(uri).body(new CategoryResponseDTO(category));
     }
 
     @PutMapping(value = "/{slug}")
-    public ResponseEntity<Category> updateBySlug(@PathVariable String slug, @RequestBody Category obj) {
-        obj = service.updateBySlug(slug, obj);
-        return ResponseEntity.ok().body(obj);
+    public ResponseEntity<CategoryResponseDTO> update(@PathVariable String slug, @Valid @RequestBody CategoryRequestDTO dto) {
+        Category category = service.update(slug, dto);
+        return ResponseEntity.ok(new CategoryResponseDTO(category));
     }
+
+    @DeleteMapping(value = "/{slug}")
+    public ResponseEntity<Void> delete(@PathVariable String slug) {
+        service.delete(slug);
+        return ResponseEntity.noContent().build();
+    }
+
+
 
 
 }
