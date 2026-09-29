@@ -3,24 +3,31 @@ package com.hokomarketplace.hokoapi.resources;
 import com.hokomarketplace.hokoapi.entities.Category;
 import com.hokomarketplace.hokoapi.services.CategoryService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
-import java.util.List;
 
 @RestController
-@RequestMapping(value = "/categories")
+@RequestMapping(value = "/api/categories")
 public class CategoryResource {
 
     @Autowired
-    private CategoryService service;
+    private final CategoryService service;
+
+    public CategoryResource(CategoryService service) {
+        this.service = service;
+    }
 
     @GetMapping
-    public ResponseEntity<List<Category>> findAll() {
-        List<Category> list = service.findAll();
-        return ResponseEntity.ok().body( list);
+    public ResponseEntity<Page<Category>> findAll(
+            @RequestParam(required = false) String search,
+            Pageable pageable) {
+        Page<Category> page = service.find(search, pageable);
+        return ResponseEntity.ok(page);
     }
 
     @GetMapping("/{slug}")

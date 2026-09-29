@@ -5,22 +5,30 @@ import com.hokomarketplace.hokoapi.repositories.CategoryRepository;
 import com.hokomarketplace.hokoapi.services.exceptions.ResourceNotFoundException;
 import com.hokomarketplace.hokoapi.utils.SlugUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 @Service
 public class CategoryService {
 
     @Autowired
-    public CategoryRepository repository;
+    private final CategoryRepository repository;
 
-    public List<Category> findAll(){
-        return repository.findAll();
+    public CategoryService(CategoryRepository repository) {
+        this.repository = repository;
     }
 
     public Category findBySlug(String slug){
         return repository.findBySlug(slug).orElseThrow(() -> new ResourceNotFoundException(slug));
+    }
+
+    public Page<Category> find(String search, Pageable pageable){
+        if (search == null || search.isBlank()) {
+            return repository.findAll(pageable);
+        }
+        String slug = SlugUtils.slugify(search);
+        return repository.findBySlugContainingIgnoreCase(slug, pageable);
     }
 
     public Category insert(Category obj) {
