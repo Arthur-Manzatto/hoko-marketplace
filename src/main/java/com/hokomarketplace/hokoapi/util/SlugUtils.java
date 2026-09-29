@@ -1,4 +1,4 @@
-package com.hokomarketplace.hokoapi.utils;
+package com.hokomarketplace.hokoapi.util;
 
 import java.text.Normalizer;
 import java.util.Locale;

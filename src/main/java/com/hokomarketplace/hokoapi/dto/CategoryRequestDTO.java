@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Size;
 import java.io.Serializable;
 
 /**
- * DTO for {@link com.hokomarketplace.hokoapi.entities.Category}
+ * DTO for {@link com.hokomarketplace.hokoapi.entity.Category}
  */
 public record CategoryRequestDTO(
         @NotBlank(message = "Name is required")

@@ -1,6 +1,6 @@
-package com.hokomarketplace.hokoapi.repositories;
+package com.hokomarketplace.hokoapi.repository;
 
-import com.hokomarketplace.hokoapi.entities.Category;
+import com.hokomarketplace.hokoapi.entity.Category;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

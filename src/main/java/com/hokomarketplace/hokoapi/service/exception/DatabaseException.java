@@ -1,4 +1,4 @@
-package com.hokomarketplace.hokoapi.services.exceptions;
+package com.hokomarketplace.hokoapi.service.exception;
 
 public class DatabaseException extends RuntimeException {
 

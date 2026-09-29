@@ -1,7 +1,7 @@
-package com.hokomarketplace.hokoapi.resources.exceptions;
+package com.hokomarketplace.hokoapi.controller.exception;
 
-import com.hokomarketplace.hokoapi.services.exceptions.DatabaseException;
-import com.hokomarketplace.hokoapi.services.exceptions.ResourceNotFoundException;
+import com.hokomarketplace.hokoapi.service.exception.DatabaseException;
+import com.hokomarketplace.hokoapi.service.exception.ResourceNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;

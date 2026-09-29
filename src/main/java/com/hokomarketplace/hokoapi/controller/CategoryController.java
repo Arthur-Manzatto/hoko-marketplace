@@ -1,9 +1,9 @@
-package com.hokomarketplace.hokoapi.resources;
+package com.hokomarketplace.hokoapi.controller;
 
 import com.hokomarketplace.hokoapi.dto.CategoryRequestDTO;
 import com.hokomarketplace.hokoapi.dto.CategoryResponseDTO;
-import com.hokomarketplace.hokoapi.entities.Category;
-import com.hokomarketplace.hokoapi.services.CategoryService;
+import com.hokomarketplace.hokoapi.entity.Category;
+import com.hokomarketplace.hokoapi.service.CategoryService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -16,7 +16,7 @@ import java.net.URI;
 
 @RestController
 @RequestMapping(value = "/api/categories")
-public class CategoryResource {
+public class CategoryController {
 
     @Autowired
     private CategoryService service;

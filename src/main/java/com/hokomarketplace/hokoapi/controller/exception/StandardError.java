@@ -1,4 +1,4 @@
-package com.hokomarketplace.hokoapi.resources.exceptions;
+package com.hokomarketplace.hokoapi.controller.exception;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import java.time.Instant;

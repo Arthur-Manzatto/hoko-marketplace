@@ -1,6 +1,6 @@
-package com.hokomarketplace.hokoapi.entities;
+package com.hokomarketplace.hokoapi.entity;
 
-import com.hokomarketplace.hokoapi.utils.SlugUtils;
+import com.hokomarketplace.hokoapi.util.SlugUtils;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

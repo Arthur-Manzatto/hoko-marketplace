@@ -1,13 +1,13 @@
 package com.hokomarketplace.hokoapi.dto;
 
-import com.hokomarketplace.hokoapi.entities.Category;
+import com.hokomarketplace.hokoapi.entity.Category;
 
 import java.io.Serializable;
 import java.time.Instant;
 import java.util.UUID;
 
 /**
- * DTO for {@link com.hokomarketplace.hokoapi.entities.Category}
+ * DTO for {@link com.hokomarketplace.hokoapi.entity.Category}
  */
 public record CategoryResponseDTO(
         UUID id,

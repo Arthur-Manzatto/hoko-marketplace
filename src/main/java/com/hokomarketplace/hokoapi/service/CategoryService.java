@@ -1,11 +1,11 @@
-package com.hokomarketplace.hokoapi.services;
+package com.hokomarketplace.hokoapi.service;
 
 import com.hokomarketplace.hokoapi.dto.CategoryRequestDTO;
-import com.hokomarketplace.hokoapi.entities.Category;
-import com.hokomarketplace.hokoapi.repositories.CategoryRepository;
-import com.hokomarketplace.hokoapi.services.exceptions.DatabaseException;
-import com.hokomarketplace.hokoapi.services.exceptions.ResourceNotFoundException;
-import com.hokomarketplace.hokoapi.utils.SlugUtils;
+import com.hokomarketplace.hokoapi.entity.Category;
+import com.hokomarketplace.hokoapi.repository.CategoryRepository;
+import com.hokomarketplace.hokoapi.service.exception.DatabaseException;
+import com.hokomarketplace.hokoapi.service.exception.ResourceNotFoundException;
+import com.hokomarketplace.hokoapi.util.SlugUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
