@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
+import java.util.UUID;
 
 @RestController
 @RequestMapping(value = "/api/categories")
@@ -27,7 +28,13 @@ public class CategoryController {
         return ResponseEntity.ok(page);
     }
 
-    @GetMapping("/{slug}")
+    @GetMapping("/{id}")
+    public ResponseEntity<CategoryResponseDTO> findById(@PathVariable UUID id) {
+        Category obj = service.findById(id);
+        return ResponseEntity.ok(new CategoryResponseDTO(obj));
+    }
+
+    @GetMapping("/slug/{slug}")
     public ResponseEntity<CategoryResponseDTO> findBySlug(@PathVariable String slug) {
         Category obj = service.findBySlug(slug);
         return ResponseEntity.ok(new CategoryResponseDTO(obj));
@@ -35,20 +42,20 @@ public class CategoryController {
 
     @PostMapping
     public ResponseEntity<CategoryResponseDTO> insert(@Valid @RequestBody CategoryRequestDTO dto) {
-        Category category = service.insert(dto);
-        URI uri = ServletUriComponentsBuilder.fromCurrentRequest().path("/{slug}").buildAndExpand(category.getSlug()).toUri();
-        return ResponseEntity.created(uri).body(new CategoryResponseDTO(category));
+        Category obj = service.insert(dto);
+        URI uri = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(obj.getId()).toUri();
+        return ResponseEntity.created(uri).body(new CategoryResponseDTO(obj));
     }
 
-    @PutMapping(value = "/{slug}")
-    public ResponseEntity<CategoryResponseDTO> update(@PathVariable String slug, @Valid @RequestBody CategoryRequestDTO dto) {
-        Category category = service.update(slug, dto);
-        return ResponseEntity.ok(new CategoryResponseDTO(category));
+    @PutMapping(value = "/{id}")
+    public ResponseEntity<CategoryResponseDTO> update(@PathVariable UUID id, @Valid @RequestBody CategoryRequestDTO dto) {
+        Category obj = service.update(id, dto);
+        return ResponseEntity.ok(new CategoryResponseDTO(obj));
     }
 
-    @DeleteMapping(value = "/{slug}")
-    public ResponseEntity<Void> delete(@PathVariable String slug) {
-        service.delete(slug);
+    @DeleteMapping(value = "/{id}")
+    public ResponseEntity<Void> delete(@PathVariable UUID id) {
+        service.delete(id);
         return ResponseEntity.noContent().build();
     }
 

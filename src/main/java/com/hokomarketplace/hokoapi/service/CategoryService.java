@@ -13,17 +13,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.UUID;
+
 @Service
 public class CategoryService {
 
     @Autowired
     private CategoryRepository repository;
-
-    @Transactional(readOnly = true)
-    public Category findBySlug(String slug){
-        return repository.findBySlug(slug)
-                .orElseThrow(() -> new ResourceNotFoundException(slug));
-    }
 
     @Transactional(readOnly = true)
     public Page<Category> findAll(String search, Pageable pageable){
@@ -34,21 +30,33 @@ public class CategoryService {
         return repository.findAll(pageable);
     }
 
+    @Transactional(readOnly = true)
+    public Category findById(UUID id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with id " + id));
+    }
+
+    @Transactional(readOnly = true)
+    public Category findBySlug(String slug){
+        return repository.findBySlug(slug)
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with slug: " + slug));
+    }
+
     @Transactional
     public Category insert(CategoryRequestDTO dto) {
-        Category category = new Category();
-        category.setName(dto.name().trim());
-        category.setSlug(generateUniqueSlug(dto.name().trim()));
+        Category entity = new Category();
+        entity.setName(dto.name().trim());
+        entity.setSlug(generateUniqueSlug(dto.name().trim()));
         try {
-            return repository.save(category);
+            return repository.save(entity);
         } catch (DataIntegrityViolationException e) {
             throw new DatabaseException("Failed to create category: duplicate name or slug");
         }
     }
 
     @Transactional
-    public Category update(String slug, CategoryRequestDTO dto) {
-        Category entity = findBySlug(slug);
+    public Category update(UUID id, CategoryRequestDTO dto) {
+        Category entity = findById(id);
         String newName = dto.name().trim();
 
         if (entity.getName().equals(newName)) {
@@ -65,10 +73,10 @@ public class CategoryService {
     }
 
     @Transactional
-    public void delete(String slug) {
-        Category category = findBySlug(slug);
+    public void delete(UUID id) {
+        Category entity = findById(id);
         try {
-            repository.delete(category);
+            repository.delete(entity);
         } catch (DataIntegrityViolationException e) {
             throw new DatabaseException("Cannot delete category: it may be referenced by other entities");
         }
