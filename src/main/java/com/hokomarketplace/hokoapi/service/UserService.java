@@ -42,9 +42,7 @@ public class UserService {
     @Transactional
     public User insert(UserRequestDTO dto) {
         User entity = new User();
-        entity.setName(dto.name().trim());
-        entity.setEmail(dto.email().trim());
-        entity.setPhone(dto.phone().trim());
+        apply(entity, dto);
         try {
             return repository.save(entity);
         } catch (DataIntegrityViolationException e) {
@@ -55,24 +53,19 @@ public class UserService {
     @Transactional
     public User update(UUID id, UserRequestDTO dto) {
         User entity = findById(id);
-        String newName = dto.name().trim();
-        String newEmail = dto.email().trim();
-        String newPhone = dto.phone().trim();
 
-        if (entity.getName().equals(newName) &&  entity.getEmail().equals(newEmail) && entity.getPhone().equals(newPhone)) {
+        User candidate = new User();
+        apply(candidate, dto);
+        if (isSame(entity, candidate)) {
             return entity;
         }
 
-        entity.setName(newName);
-        entity.setEmail(newEmail);
-        entity.setPhone(newPhone);
-
+        apply(entity, dto);
         try {
             return repository.save(entity);
         } catch (DataIntegrityViolationException e) {
             throw new DatabaseException("Failed to update user: duplicate email or phone number");
         }
-
     }
 
     @Transactional
@@ -85,5 +78,16 @@ public class UserService {
         }
     }
 
+    private void apply(User entity, UserRequestDTO dto) {
+        entity.setName(dto.name().trim());
+        entity.setEmail(dto.email().trim());
+        entity.setPhone(dto.phone().trim());
+    }
+
+    private boolean isSame(User entity, User other) {
+        return entity.getName().equals(other.getName())
+                && entity.getEmail().equals(other.getEmail())
+                && entity.getPhone().equals(other.getPhone());
+    }
 
 }
