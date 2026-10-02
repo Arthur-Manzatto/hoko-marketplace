@@ -43,9 +43,8 @@ public class User implements Serializable {
     @Column(nullable = false, unique = true, length = 60)
     private String email;
 
-    @NotBlank
     @Size(max = 11)
-    @Column(nullable = false, unique = true, length = 11)
+    @Column(unique = true, length = 11)
     private String phone;
 
     @CreationTimestamp

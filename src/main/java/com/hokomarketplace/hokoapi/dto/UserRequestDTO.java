@@ -22,5 +22,5 @@ public record UserRequestDTO(
 
         @Size(max = 11)
         @Pattern(message = "Phone must contain 10 or 11 digits", regexp = "^\\d{10,11}$")
-        @NotBlank String phone
+        String phone
 ) implements Serializable { }

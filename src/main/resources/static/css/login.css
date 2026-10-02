@@ -358,3 +358,29 @@ body {
     }
 
 }
+
+.form-error {
+    color: #EF4444;
+    font-size: 0.875rem;
+    margin: 0.5rem 0;
+    text-align: center;
+}
+
+.back-link {
+    position: fixed;
+    top: 20px;
+    left: 24px;
+    z-index: 20;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--hoko-blue);
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-decoration: none;
+}
+
+.back-link:hover {
+    color: var(--hoko-orange);
+    text-decoration: none;
+}
