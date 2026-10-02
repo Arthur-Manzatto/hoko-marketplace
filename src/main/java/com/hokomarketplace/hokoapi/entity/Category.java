@@ -2,8 +2,6 @@ package com.hokomarketplace.hokoapi.entity;
 
 import com.hokomarketplace.hokoapi.util.SlugUtils;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -22,13 +20,9 @@ public class Category implements Serializable {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @NotBlank
-    @Size(min = 3, max = 50)
     @Column(nullable = false, unique = true, length = 50)
     private String name;
 
-    @NotBlank
-    @Size(max = 60)
     @Column(nullable = false, unique = true, length = 60)
     private String slug;
 

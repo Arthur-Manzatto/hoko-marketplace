@@ -12,6 +12,7 @@ import java.util.UUID;
 public record AddressResponseDTO(
         UUID id,
         UUID userId,
+        String label,
         String street,
         String number,
         String complement,
@@ -19,6 +20,7 @@ public record AddressResponseDTO(
         String city,
         String state,
         String zipCode,
+        boolean isDefault,
         Instant createdAt,
         Instant updatedAt
 ) implements Serializable {
@@ -27,6 +29,7 @@ public record AddressResponseDTO(
     this (
             entity.getId(),
             entity.getUser().getId(),
+            entity.getLabel(),
             entity.getStreet(),
             entity.getNumber(),
             entity.getComplement(),
@@ -34,6 +37,7 @@ public record AddressResponseDTO(
             entity.getCity(),
             entity.getState(),
             entity.getZipCode(),
+            entity.isDefault(),
             entity.getCreatedAt(),
             entity.getUpdatedAt()
     );

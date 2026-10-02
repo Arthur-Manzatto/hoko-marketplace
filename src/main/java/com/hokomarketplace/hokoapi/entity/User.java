@@ -2,9 +2,6 @@ package com.hokomarketplace.hokoapi.entity;
 
 import com.hokomarketplace.hokoapi.util.SearchUtils;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -24,8 +21,6 @@ public class User implements Serializable {
     @Column(name = "id", nullable = false)
     private UUID id;
 
-    @NotBlank
-    @Size(min = 3, max = 50)
     @Column(nullable = false, length = 50)
     private String name;
 
@@ -37,15 +32,10 @@ public class User implements Serializable {
         this.nameSearch = SearchUtils.normalize(this.name);
     }
 
-    @NotBlank
-    @Email
-    @Size(max = 60)
     @Column(nullable = false, unique = true, length = 60)
     private String email;
 
-    @NotBlank
-    @Size(max = 11)
-    @Column(nullable = false, unique = true, length = 11)
+    @Column(unique = true, length = 11)
     private String phone;
 
     @CreationTimestamp

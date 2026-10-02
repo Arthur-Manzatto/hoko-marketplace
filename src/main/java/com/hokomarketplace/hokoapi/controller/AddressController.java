@@ -52,4 +52,13 @@ public class AddressController {
         service.delete(userId, id);
         return ResponseEntity.noContent().build();
     }
+
+    @PatchMapping("/{id}/default")
+    public ResponseEntity<AddressResponseDTO> setDefault(
+            @PathVariable UUID userId,
+            @PathVariable UUID id
+    ) {
+        Address obj = service.setDefault(userId, id);
+        return ResponseEntity.ok(new AddressResponseDTO(obj));
+    }
 }
