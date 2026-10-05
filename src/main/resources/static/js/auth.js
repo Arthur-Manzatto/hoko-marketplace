@@ -36,6 +36,7 @@ registerForm.addEventListener("submit", async (event) => {
 
     const name = document.querySelector("#register-name").value.trim();
     const email           = document.querySelector("#register-email").value.trim();
+    const phone = document.querySelector("#register-phone").value.trim();
     const password        = document.querySelector("#register-password").value;
     const passwordConfirm = document.querySelector("#register-password-confirm").value;
 
@@ -45,7 +46,12 @@ registerForm.addEventListener("submit", async (event) => {
     const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { name } },
+        options: {
+            data: {
+                name,
+                phone: phone || null  // envia null se vazio
+            }
+        },
     });
 
     if (error) return showError(registerForm, error.message);

@@ -137,7 +137,7 @@
 
                     <i class="bi bi-person"></i>
 
-                    <input id="register-name" type="text" placeholder="Nome completo" autocomplete="name" required>
+                    <input id="register-name" type="text" placeholder="Nome completo" autocomplete="name" minlength="3" maxlength="50" required>
 
                 </div>
 
@@ -150,6 +150,15 @@
 
                     <input id="register-email" type="email" placeholder="E-mail" autocomplete="email" required>
 
+
+                </div>
+
+                <!-- Telefone -->
+                <div class="input-container">
+
+                    <i class="bi bi-phone"></i>
+
+                    <input id="register-phone" type="tel" placeholder="Telefone (opcional)" autocomplete="tel" pattern="^\d{10,11}$" title="Digite 10 ou 11 números (DDD + número)">
 
                 </div>
 
