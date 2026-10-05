@@ -9,6 +9,9 @@ import java.io.Serializable;
  * DTO for {@link com.hokomarketplace.hokoapi.entity.Address}
  */
 public record AddressRequestDTO(
+        @Size(max = 30)
+        String label,
+
         @NotBlank
         @Size(max = 255)
         String street,

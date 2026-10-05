@@ -1,7 +1,6 @@
 package com.hokomarketplace.hokoapi.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -25,31 +24,32 @@ public class Address implements Serializable {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @NotBlank
+    @Column(length = 30)
+    private String label;
+
     @Column(nullable = false)
     private String street;
 
-    @NotBlank
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private String number;
 
+    @Column(length = 100)
     private String complement;
 
-    @NotBlank
-    @Column(nullable = false)
+    @Column(nullable = false, length = 100)
     private String neighborhood;
 
-    @NotBlank
-    @Column(nullable = false)
+    @Column(nullable = false,  length = 100)
     private String city;
 
-    @NotBlank
-    @Column(nullable = false)
+    @Column(nullable = false, length = 2)
     private String state;
 
-    @NotBlank
-    @Column(name = "zip_code", nullable = false)
+    @Column(name = "zip_code", nullable = false, length = 9)
     private String zipCode;
+
+    @Column(name = "is_default", nullable = false)
+    private boolean isDefault;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -59,60 +59,25 @@ public class Address implements Serializable {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    public Instant getCreatedAt() {
-        return createdAt;
+    public UUID getId() {
+        return id;
     }
 
-    public Instant getUpdatedAt() {
-        return updatedAt;
+
+    public User getUser() {
+        return user;
     }
 
-    public String getZipCode() {
-        return zipCode;
+    public void setUser(User user) {
+        this.user = user;
     }
 
-    public void setZipCode(String zipCode) {
-        this.zipCode = zipCode;
+    public String getLabel() {
+        return label;
     }
 
-    public String getState() {
-        return state;
-    }
-
-    public void setState(String state) {
-        this.state = state;
-    }
-
-    public String getCity() {
-        return city;
-    }
-
-    public void setCity(String city) {
-        this.city = city;
-    }
-
-    public String getNeighborhood() {
-        return neighborhood;
-    }
-
-    public void setNeighborhood(String neighborhood) {
-        this.neighborhood = neighborhood;
-    }
-
-    public String getComplement() {
-        return complement;
-    }
-
-    public void setComplement(String complement) {
-        this.complement = complement;
-    }
-
-    public String getNumber() {
-        return number;
-    }
-
-    public void setNumber(String number) {
-        this.number = number;
+    public void setLabel(String label) {
+        this.label = label;
     }
 
     public String getStreet() {
@@ -123,16 +88,68 @@ public class Address implements Serializable {
         this.street = street;
     }
 
-    public User getUser() {
-        return user;
+    public String getNumber() {
+        return number;
     }
 
-    public void setUser(User user) {
-        this.user = user;
+    public void setNumber(String number) {
+        this.number = number;
     }
 
-    public UUID getId() {
-        return id;
+    public String getComplement() {
+        return complement;
+    }
+
+    public void setComplement(String complement) {
+        this.complement = complement;
+    }
+
+    public String getNeighborhood() {
+        return neighborhood;
+    }
+
+    public void setNeighborhood(String neighborhood) {
+        this.neighborhood = neighborhood;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
+    }
+
+    public String getZipCode() {
+        return zipCode;
+    }
+
+    public void setZipCode(String zipCode) {
+        this.zipCode = zipCode;
+    }
+
+    public boolean isDefault() {
+        return isDefault;
+    }
+
+    public void setDefault(boolean aDefault) {
+        isDefault = aDefault;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
     }
 
     @Override

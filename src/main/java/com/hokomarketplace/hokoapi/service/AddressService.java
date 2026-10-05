@@ -36,6 +36,14 @@ public class AddressService {
     }
 
     @Transactional
+    public Address setDefault(UUID userId, UUID id) {
+        Address entity = findById(userId, id);
+        repository.clearDefaultExcept(userId, id);
+        entity.setDefault(true);
+        return repository.save(entity);
+    }
+
+    @Transactional
     public Address insert(UUID userId, AddressRequestDTO dto) {
         Address entity = new Address();
         entity.setUser(userService.findById(userId));
@@ -76,6 +84,7 @@ public class AddressService {
     }
 
     private void apply(Address entity, AddressRequestDTO dto) {
+        entity.setLabel(dto.label() == null ? null : dto.label().trim());
         entity.setStreet(dto.street().trim());
         entity.setNumber(dto.number().trim());
         entity.setComplement(dto.complement() == null ? null : dto.complement().trim());
@@ -86,7 +95,8 @@ public class AddressService {
     }
 
     private boolean isSame(Address entity, Address other) {
-        return entity.getStreet().equals(other.getStreet())
+        return  Objects.equals(entity.getLabel(), other.getLabel())
+                && entity.getStreet().equals(other.getStreet())
                 && entity.getNumber().equals(other.getNumber())
                 && Objects.equals(entity.getComplement(), other.getComplement())
                 && entity.getNeighborhood().equals(other.getNeighborhood())
