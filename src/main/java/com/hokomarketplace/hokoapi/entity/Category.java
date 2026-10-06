@@ -18,6 +18,7 @@ public class Category implements Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id", nullable = false)
     private UUID id;
 
     @Column(nullable = false, unique = true, length = 50)
@@ -35,11 +36,6 @@ public class Category implements Serializable {
     private Instant updatedAt;
 
     public Category() {
-    }
-
-    public Category(String name) {
-        this.name = name;
-        this.slug = SlugUtils.slugify(name);
     }
 
     public String getName() {

@@ -11,13 +11,13 @@ import java.io.Serializable;
  * DTO for {@link com.hokomarketplace.hokoapi.entity.User}
  */
 public record UserRequestDTO(
-        @Size(min = 3, max = 50)
         @NotBlank
+        @Size(min = 3, max = 50)
         String name,
 
+        @NotBlank
         @Size(max = 60)
         @Email
-        @NotBlank
         String email,
 
         @Size(max = 11)

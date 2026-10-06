@@ -62,8 +62,8 @@ public class Address implements Serializable {
     @Column(name = "deleted_at")
     private Instant deletedAt;
 
-
-
+    public Address() {
+    }
 
     public UUID getId() {
         return id;

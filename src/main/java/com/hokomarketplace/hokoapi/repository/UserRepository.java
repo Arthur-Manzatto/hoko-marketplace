@@ -23,10 +23,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     @Query("SELECT u FROM User u WHERE u.deletedAt IS NULL AND u.email = :email")
     Optional<User> findByEmailActive(@Param("email") String email);
 
-    Page<User> findByNameSearchContaining(
-            String nameSearch,
-            Pageable pageable
-    );
+    Page<User> findByNameSearchContaining(String nameSearch, Pageable pageable);
 
     @Query("SELECT u FROM User u WHERE u.deletedAt IS NULL AND u.nameSearch CONTAINING :nameSearch")
     Page<User> findByNameSearchContainingActive(String nameSearch, Pageable pageable);
