@@ -36,7 +36,7 @@ public interface SellerRepository extends JpaRepository<Seller, UUID> {
     Page<Seller> findByStoreNameSearchContaining(String storeNameSearch, Pageable pageable);
 
     @EntityGraph(attributePaths = "user")
-    @Query("SELECT s FROM Seller s WHERE s.deletedAt IS NULL AND s.storeNameSearch CONTAINING :storeNameSearch")
+    @Query("SELECT s FROM Seller s WHERE s.deletedAt IS NULL AND s.storeNameSearch LIKE CONCAT('%', :storeNameSearch, '%')")
     Page<Seller> findByStoreNameSearchContainingActive(String storeNameSearch, Pageable pageable);
 
     @EntityGraph(attributePaths = "user")

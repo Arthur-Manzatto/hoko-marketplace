@@ -25,7 +25,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     Page<User> findByNameSearchContaining(String nameSearch, Pageable pageable);
 
-    @Query("SELECT u FROM User u WHERE u.deletedAt IS NULL AND u.nameSearch CONTAINING :nameSearch")
+    @Query("SELECT u FROM User u WHERE u.deletedAt IS NULL AND u.nameSearch LIKE CONCAT('%', :nameSearch, '%')")
     Page<User> findByNameSearchContainingActive(String nameSearch, Pageable pageable);
 
 }
