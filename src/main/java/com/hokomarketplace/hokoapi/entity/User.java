@@ -46,6 +46,9 @@ public class User implements Serializable {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
+
     public User() {
     }
 
@@ -93,6 +96,14 @@ public class User implements Serializable {
 
     public Instant getUpdatedAt() {
         return updatedAt;
+    }
+
+    public Instant getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void setDeletedAt(Instant deletedAt) {
+        this.deletedAt = deletedAt;
     }
 
     @Override

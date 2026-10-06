@@ -23,14 +23,23 @@ public class AddressController {
     private AddressService service;
 
     @GetMapping
-    public ResponseEntity<Page<AddressResponseDTO>> findAll(@PathVariable UUID userId, Pageable pageable) {
-        Page<AddressResponseDTO> page = service.findAllByUserId(userId, pageable).map(AddressResponseDTO::new);
+    public ResponseEntity<Page<AddressResponseDTO>> findAll(
+            @PathVariable UUID userId,
+            @RequestParam(required = false, defaultValue = "false") boolean includeDeleted,
+            Pageable pageable) {
+
+        Page<AddressResponseDTO> page = service.findAll(userId, includeDeleted, pageable)
+                .map(AddressResponseDTO::new);
         return ResponseEntity.ok(page);
     }
 
     @GetMapping(value = "/{id}")
-    public ResponseEntity<AddressResponseDTO> findById(@PathVariable UUID userId, @PathVariable UUID id) {
-        Address obj = service.findById(userId, id);
+    public ResponseEntity<AddressResponseDTO> findById(
+            @PathVariable UUID userId,
+            @PathVariable UUID id,
+            @RequestParam(required = false, defaultValue = "false") boolean includeDeleted) {
+
+        Address obj = service.get(userId, id, includeDeleted);
         return ResponseEntity.ok(new AddressResponseDTO(obj));
     }
 
@@ -44,7 +53,7 @@ public class AddressController {
     @PutMapping(value = "/{id}")
     public ResponseEntity<AddressResponseDTO> update(@PathVariable UUID userId, @PathVariable UUID id, @Valid @RequestBody AddressRequestDTO dto) {
         Address obj = service.update(userId, id, dto);
-        return  ResponseEntity.ok(new AddressResponseDTO(obj));
+        return ResponseEntity.ok(new AddressResponseDTO(obj));
     }
 
     @DeleteMapping(value = "/{id}")

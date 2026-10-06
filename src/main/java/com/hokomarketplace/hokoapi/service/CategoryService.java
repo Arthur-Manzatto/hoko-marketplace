@@ -46,7 +46,7 @@ public class CategoryService {
     public Category insert(CategoryRequestDTO dto) {
         Category entity = new Category();
         entity.setName(dto.name().trim());
-        entity.setSlug(generateUniqueSlug(dto.name().trim()));
+        entity.setSlug(generateUniqueSlug(dto.name().trim(), null));
         try {
             return repository.save(entity);
         } catch (DataIntegrityViolationException e) {
@@ -80,10 +80,6 @@ public class CategoryService {
         } catch (DataIntegrityViolationException e) {
             throw new DatabaseException("Cannot delete category: it may be referenced by other entities");
         }
-    }
-
-    private String generateUniqueSlug(String name) {
-        return generateUniqueSlug(name, null);
     }
 
     private String generateUniqueSlug(String name, java.util.UUID excludeId) {

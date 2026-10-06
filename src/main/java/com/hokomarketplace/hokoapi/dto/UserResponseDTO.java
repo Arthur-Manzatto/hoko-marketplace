@@ -15,7 +15,8 @@ public record UserResponseDTO(
         String email,
         String phone,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        Instant deletedAt
 ) implements Serializable {
 
     public UserResponseDTO(User entity) {
@@ -25,7 +26,8 @@ public record UserResponseDTO(
                 entity.getEmail(),
                 entity.getPhone(),
                 entity.getCreatedAt(),
-                entity.getUpdatedAt()
+                entity.getUpdatedAt(),
+                entity.getDeletedAt()
         );
     }
 

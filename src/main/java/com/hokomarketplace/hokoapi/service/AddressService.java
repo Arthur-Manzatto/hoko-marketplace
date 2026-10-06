@@ -12,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -25,19 +26,28 @@ public class AddressService {
     private UserService userService;
 
     @Transactional(readOnly = true)
-    public Page<Address> findAllByUserId(UUID userId, Pageable pageable) {
-        userService.findById(userId);
-        return repository.findByUserId(userId, pageable);
+    public Page<Address> findAll(UUID userId, boolean includeDeleted, Pageable pageable) {
+        userService.get(userId, false);
+        if (includeDeleted) {
+            return repository.findByUserId(userId, pageable);
+        }
+        return repository.findByUserIdActive(userId, pageable);
     }
 
     @Transactional(readOnly = true)
-    public Address findById(UUID userId,  UUID id) {
-        return repository.findByUserIdAndId(userId, id).orElseThrow(() -> new ResourceNotFoundException("Address not found with id " + id + " for user " + userId));
+    public Address get(UUID userId, UUID id, boolean includeDeleted) {
+        userService.get(userId, false);
+        if (includeDeleted) {
+            return repository.findByUserIdAndId(userId, id)
+                    .orElseThrow(() -> new ResourceNotFoundException("Address not found with id " + id + " for user " + userId));
+        }
+        return repository.findByUserIdAndIdActive(userId, id)
+                .orElseThrow(() -> new ResourceNotFoundException("Address not found with id " + id + " for user " + userId));
     }
 
     @Transactional
     public Address setDefault(UUID userId, UUID id) {
-        Address entity = findById(userId, id);
+        Address entity = get(userId, id, false);
         repository.clearDefaultExcept(userId, id);
         entity.setDefault(true);
         return repository.save(entity);
@@ -46,7 +56,7 @@ public class AddressService {
     @Transactional
     public Address insert(UUID userId, AddressRequestDTO dto) {
         Address entity = new Address();
-        entity.setUser(userService.findById(userId));
+        entity.setUser(userService.get(userId, false));
         apply(entity, dto);
         try {
             return repository.save(entity);
@@ -57,7 +67,7 @@ public class AddressService {
 
     @Transactional
     public Address update(UUID userId, UUID id, AddressRequestDTO dto) {
-        Address entity = findById(userId, id);
+        Address entity = get(userId, id, false);
 
         Address candidate = new Address();
         apply(candidate, dto);
@@ -75,12 +85,9 @@ public class AddressService {
 
     @Transactional
     public void delete(UUID userId, UUID id) {
-        Address entity = findById(userId, id);
-        try {
-            repository.delete(entity);
-        } catch (DataIntegrityViolationException e) {
-            throw new DatabaseException("Failed to delete address: it may be referenced by other entities");
-        }
+        Address entity = get(userId, id, false);
+        entity.setDeletedAt(Instant.now());
+        repository.save(entity);
     }
 
     private void apply(Address entity, AddressRequestDTO dto) {
@@ -95,7 +102,7 @@ public class AddressService {
     }
 
     private boolean isSame(Address entity, Address other) {
-        return  Objects.equals(entity.getLabel(), other.getLabel())
+        return Objects.equals(entity.getLabel(), other.getLabel())
                 && entity.getStreet().equals(other.getStreet())
                 && entity.getNumber().equals(other.getNumber())
                 && Objects.equals(entity.getComplement(), other.getComplement())
@@ -104,6 +111,4 @@ public class AddressService {
                 && entity.getState().equals(other.getState())
                 && entity.getZipCode().equals(other.getZipCode());
     }
-
-
 }

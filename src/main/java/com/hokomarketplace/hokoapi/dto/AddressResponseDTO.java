@@ -22,7 +22,8 @@ public record AddressResponseDTO(
         String zipCode,
         boolean isDefault,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        Instant deletedAt
 ) implements Serializable {
 
   public AddressResponseDTO(Address entity) {
@@ -39,7 +40,8 @@ public record AddressResponseDTO(
             entity.getZipCode(),
             entity.isDefault(),
             entity.getCreatedAt(),
-            entity.getUpdatedAt()
+            entity.getUpdatedAt(),
+            entity.getDeletedAt()
     );
   }
 

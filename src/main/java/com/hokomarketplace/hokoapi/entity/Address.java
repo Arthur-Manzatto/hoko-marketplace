@@ -59,10 +59,15 @@ public class Address implements Serializable {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
+
+
+
+
     public UUID getId() {
         return id;
     }
-
 
     public User getUser() {
         return user;
@@ -150,6 +155,14 @@ public class Address implements Serializable {
 
     public Instant getUpdatedAt() {
         return updatedAt;
+    }
+
+    public Instant getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void setDeletedAt(Instant deletedAt) {
+        this.deletedAt = deletedAt;
     }
 
     @Override

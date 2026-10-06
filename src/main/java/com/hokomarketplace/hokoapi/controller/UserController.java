@@ -23,21 +23,32 @@ public class UserController {
     private UserService service;
 
     @GetMapping
-    public ResponseEntity<Page<UserResponseDTO>> findAll(@RequestParam(required = false) String search, Pageable pageable) {
-        Page<UserResponseDTO> page = service.findAll(search, pageable).map(UserResponseDTO::new);
+    public ResponseEntity<Page<UserResponseDTO>> findAll(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false, defaultValue = "false") boolean includeDeleted,
+            Pageable pageable) {
+
+        Page<UserResponseDTO> page = service.findAll(search, includeDeleted, pageable)
+                .map(UserResponseDTO::new);
         return ResponseEntity.ok(page);
     }
 
     @GetMapping(value = "/{id}")
-    public ResponseEntity<UserResponseDTO> findById(@PathVariable UUID id) {
-        User obj = service.findById(id);
+    public ResponseEntity<UserResponseDTO> findById(
+            @PathVariable UUID id,
+            @RequestParam(required = false, defaultValue = "false") boolean includeDeleted) {
+
+        User obj = service.get(id, includeDeleted);
         return ResponseEntity.ok(new UserResponseDTO(obj));
     }
 
     @GetMapping(value = "/email/{email}")
-    public ResponseEntity<UserResponseDTO> findByEmail(@PathVariable String email) {
-        User obj  = service.findByEmail(email);
-        return ResponseEntity.ok(new  UserResponseDTO(obj));
+    public ResponseEntity<UserResponseDTO> findByEmail(
+            @PathVariable String email,
+            @RequestParam(required = false, defaultValue = "false") boolean includeDeleted) {
+
+        User obj = service.getByEmail(email, includeDeleted);
+        return ResponseEntity.ok(new UserResponseDTO(obj));
     }
 
     @PostMapping
@@ -50,7 +61,7 @@ public class UserController {
     @PutMapping(value = "/{id}")
     public ResponseEntity<UserResponseDTO> update(@PathVariable UUID id, @Valid @RequestBody UserRequestDTO dto) {
         User obj = service.update(id, dto);
-        return ResponseEntity.ok(new  UserResponseDTO(obj));
+        return ResponseEntity.ok(new UserResponseDTO(obj));
     }
 
     @DeleteMapping(value = "/{id}")
@@ -58,8 +69,4 @@ public class UserController {
         service.delete(id);
         return ResponseEntity.noContent().build();
     }
-
-
-
-
 }

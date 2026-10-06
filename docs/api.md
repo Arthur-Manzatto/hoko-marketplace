@@ -306,9 +306,12 @@ if (res.status === 204) {
   "zipCode": "13010-000",
   "isDefault": true,
   "createdAt": "2026-10-05T16:53:12Z",
-  "updatedAt": "2026-10-05T16:53:12Z"
+  "updatedAt": "2026-10-05T16:53:12Z",
+  "deletedAt": null
 }
 ```
+
+**Soft-delete:** Endereços deletados permanecem no banco com `deletedAt` preenchido. Use `includeDeleted=true` para recuperá-los.
 
 ### Body de criação/edição
 
@@ -344,14 +347,23 @@ Campos opcionais omitidos, ou enviados como `null`, são salvos como `null`.
 GET /api/users/{userId}/addresses
 ```
 
-Aceita `page`, `size`, `sort`. **Não aceita `search`.**
+| Query param | Tipo | Padrão | Descrição |
+|---|---|---|---|
+| `page` | int | `0` | Índice da página |
+| `size` | int | `20` | Itens por página |
+| `sort` | string | — | Ordenação, ex: `sort=createdAt,desc` |
+| `includeDeleted` | boolean | `false` | Incluir endereços deletados (soft-delete) |
 
 ```js
+// Apenas endereços ativos
 const res = await fetch(`${API}/api/users/${userId}/addresses?size=10`);
 const page = await res.json();
+page.content; // array de endereços (deletedAt = null)
 
-page.content; // array de endereços
-const principal = page.content.find(a => a.isDefault);
+// Incluir deletados
+const res2 = await fetch(`${API}/api/users/${userId}/addresses?includeDeleted=true&size=10`);
+const page2 = await res2.json();
+page2.content; // todos os endereços (incluindo deletedAt != null)
 ```
 
 ### Buscar por id
@@ -360,7 +372,19 @@ const principal = page.content.find(a => a.isDefault);
 GET /api/users/{userId}/addresses/{id}
 ```
 
+| Query param | Tipo | Padrão | Descrição |
+|---|---|---|---|
+| `includeDeleted` | boolean | `false` | Incluir endereço se deletado (soft-delete) |
+
 Retorna `404` se o endereço não existir **ou** não pertencer a esse usuário — é a mesma resposta nos dois casos, o que evita vazar a existência do endereço de outra pessoa.
+
+```js
+// Buscar endereço ativo
+const res = await fetch(`${API}/api/users/${userId}/addresses/${id}`);
+
+// Buscar endereço mesmo que deletado
+const res2 = await fetch(`${API}/api/users/${userId}/addresses/${id}?includeDeleted=true`);
+```
 
 ### Criar
 
@@ -429,9 +453,174 @@ Resposta: **`204` sem body**.
 
 ## 8. Usuários
 
-**Em breve.** A gestão de usuários entra no final do projeto, junto com a autenticação (Spring Security).
+Endpoints de gestão de usuários com suporte a soft-delete.
 
-Por enquanto, o cadastro e login são feitos direto pelo Supabase Auth no frontend. As rotas `GET /api/users` e afins existem no código mas **não devem ser usadas ainda**.
+### Modelo
+
+```json
+{
+  "id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+  "name": "João Silva",
+  "email": "joao@example.com",
+  "phone": "11987654321",
+  "createdAt": "2026-10-05T16:53:12Z",
+  "updatedAt": "2026-10-05T16:53:12Z",
+  "deletedAt": null
+}
+```
+
+**Soft-delete:** Usuários deletados permanecem no banco com `deletedAt` preenchido. Use `includeDeleted=true` para recuperá-los.
+
+### Body de criação/edição
+
+```json
+{
+  "name": "João Silva",
+  "email": "joao@example.com",
+  "phone": "11987654321"
+}
+```
+
+| Campo | Obrigatório | Limite | Validação |
+|---|---|---|---|
+| `name` | **sim** | 50 | Entre 3 e 50 caracteres |
+| `email` | **sim** | 60 | Email válido, único no banco |
+| `phone` | não | 11 | Exatamente 10 ou 11 dígitos numéricos |
+
+### Listar
+
+```
+GET /api/users
+```
+
+| Query param | Tipo | Padrão | Descrição |
+|---|---|---|---|
+| `search` | string | — | Busca por nome, sem acento |
+| `page` | int | `0` | Índice da página |
+| `size` | int | `20` | Itens por página |
+| `sort` | string | — | Ordenação, ex: `sort=name,asc` |
+| `includeDeleted` | boolean | `false` | Incluir usuários deletados (soft-delete) |
+
+```js
+// Apenas usuários ativos
+const res = await fetch(`${API}/api/users?size=10`);
+const page = await res.json();
+page.content; // array de usuários (deletedAt = null)
+
+// Buscar por nome
+const res2 = await fetch(`${API}/api/users?search=joão&size=10`);
+const page2 = await res2.json();
+
+// Incluir deletados
+const res3 = await fetch(`${API}/api/users?includeDeleted=true&size=10`);
+const page3 = await res3.json();
+```
+
+### Buscar por id
+
+```
+GET /api/users/{id}
+```
+
+| Query param | Tipo | Padrão | Descrição |
+|---|---|---|---|
+| `includeDeleted` | boolean | `false` | Incluir se deletado (soft-delete) |
+
+```js
+// Buscar usuário ativo
+const res = await fetch(`${API}/api/users/${id}`);
+const usuario = await res.json();
+
+// Buscar mesmo que deletado
+const res2 = await fetch(`${API}/api/users/${id}?includeDeleted=true`);
+const usuarioDeletado = await res2.json();
+```
+
+### Buscar por email
+
+```
+GET /api/users/email/{email}
+```
+
+| Query param | Tipo | Padrão | Descrição |
+|---|---|---|---|
+| `includeDeleted` | boolean | `false` | Incluir se deletado (soft-delete) |
+
+```js
+const res = await fetch(`${API}/api/users/email/joao@example.com`);
+const usuario = await res.json();
+```
+
+### Criar
+
+```
+POST /api/users
+```
+
+Resposta: **`201`** com o usuário criado e header `Location`.
+
+```js
+const res = await fetch(`${API}/api/users`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    name: 'João Silva',
+    email: 'joao@example.com',
+    phone: '11987654321',
+  }),
+});
+
+if (res.status === 201) {
+  const criado = await res.json();
+  console.log(criado.id);
+}
+
+if (res.status === 409) {
+  // email já existe
+}
+
+if (res.status === 422) {
+  // validação falhou
+}
+```
+
+### Atualizar
+
+```
+PUT /api/users/{id}
+```
+
+Mesmo body da criação. Resposta **`200`** com o usuário atualizado.
+
+```js
+const res = await fetch(`${API}/api/users/${id}`, {
+  method: 'PUT',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    name: 'João Santos',
+    email: 'joao.santos@example.com',
+    phone: '11999998888',
+  }),
+});
+```
+
+Se o conteúdo normalizado for idêntico ao que já está no banco, a API responde sem gravar.
+
+### Deletar
+
+```
+DELETE /api/users/{id}
+```
+
+Resposta: **`204` sem body**. O usuário é marcado como deletado (soft-delete) e seus endereços também.
+
+```js
+const res = await fetch(`${API}/api/users/${id}`, { method: 'DELETE' });
+
+if (res.status === 204) {
+  // deletado
+}
+```
 
 ---
 
