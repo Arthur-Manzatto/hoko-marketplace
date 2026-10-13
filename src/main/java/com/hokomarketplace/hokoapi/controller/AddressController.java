@@ -5,7 +5,6 @@ import com.hokomarketplace.hokoapi.dto.AddressResponseDTO;
 import com.hokomarketplace.hokoapi.entity.Address;
 import com.hokomarketplace.hokoapi.service.AddressService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -19,8 +18,11 @@ import java.util.UUID;
 @RequestMapping("/api/users/{userId}/addresses")
 public class AddressController {
 
-    @Autowired
-    private AddressService service;
+    private final AddressService service;
+
+    public AddressController(AddressService service) {
+        this.service = service;
+    }
 
     @GetMapping
     public ResponseEntity<Page<AddressResponseDTO>> findAll(

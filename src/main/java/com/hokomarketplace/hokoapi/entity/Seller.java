@@ -17,6 +17,7 @@ public class Seller implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", nullable = false)
     private UUID id;
 
@@ -24,7 +25,7 @@ public class Seller implements Serializable {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(nullable = false, length = 100)
+    @Column(nullable = false, length = 80)
     private String storeName;
 
     @Column(name = "store_name_search", nullable = false)

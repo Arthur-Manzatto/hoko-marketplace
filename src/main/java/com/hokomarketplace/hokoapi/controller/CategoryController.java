@@ -5,7 +5,6 @@ import com.hokomarketplace.hokoapi.dto.CategoryResponseDTO;
 import com.hokomarketplace.hokoapi.entity.Category;
 import com.hokomarketplace.hokoapi.service.CategoryService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -19,8 +18,11 @@ import java.util.UUID;
 @RequestMapping(value = "/api/categories")
 public class CategoryController {
 
-    @Autowired
-    private CategoryService service;
+    private final CategoryService service;
+
+    public CategoryController(CategoryService service) {
+        this.service = service;
+    }
 
     @GetMapping
     public ResponseEntity<Page<CategoryResponseDTO>> findAll(@RequestParam(required = false) String search, Pageable pageable) {

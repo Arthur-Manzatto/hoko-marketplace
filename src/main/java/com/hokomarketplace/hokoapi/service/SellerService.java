@@ -3,12 +3,9 @@ package com.hokomarketplace.hokoapi.service;
 import com.hokomarketplace.hokoapi.dto.SellerRequestDTO;
 import com.hokomarketplace.hokoapi.entity.Seller;
 import com.hokomarketplace.hokoapi.repository.SellerRepository;
-import com.hokomarketplace.hokoapi.service.exception.DatabaseException;
 import com.hokomarketplace.hokoapi.service.exception.ResourceNotFoundException;
 import com.hokomarketplace.hokoapi.util.SearchUtils;
 import com.hokomarketplace.hokoapi.util.SlugUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -20,11 +17,13 @@ import java.util.UUID;
 @Service
 public class SellerService {
 
-    @Autowired
-    private SellerRepository repository;
+    private final SellerRepository repository;
+    private final UserService userService;
 
-    @Autowired
-    private UserService userService;
+    public SellerService(SellerRepository repository, UserService userService) {
+        this.repository = repository;
+        this.userService = userService;
+    }
 
     @Transactional(readOnly = true)
     public Page<Seller> findAll(String search, boolean includeDeleted, Pageable pageable) {
@@ -74,30 +73,30 @@ public class SellerService {
     public Seller insert(UUID userId, SellerRequestDTO dto) {
         Seller entity = new Seller();
         entity.setUser(userService.get(userId, false));
-        apply(entity, dto);
-        try {
-            return repository.save(entity);
-        } catch (DataIntegrityViolationException e) {
-            throw new DatabaseException("Failed to create Seller: duplicate store name or document");
-        }
+        String storeName = dto.storeName().trim();
+        entity.setStoreName(storeName);
+        entity.setSlug(slugFor(storeName, null));
+        entity.setDocument(dto.document().trim());
+        return repository.saveAndFlush(entity);
     }
 
     @Transactional
     public Seller update(UUID userId, SellerRequestDTO dto) {
         Seller entity = getByUserId(userId, false);
+        String storeName = dto.storeName().trim();
+        String document = dto.document().trim();
 
-        Seller candidate = new Seller();
-        apply(candidate, dto);
-        if (isSame(entity, candidate)) {
+        boolean nameChanged = !entity.getStoreName().equals(storeName);
+        if (!nameChanged && entity.getDocument().equals(document)) {
             return entity;
         }
 
-        apply(entity, dto);
-        try {
-            return repository.save(entity);
-        } catch (DataIntegrityViolationException e) {
-            throw new DatabaseException("Failed to update seller: duplicate store name or document");
+        if (nameChanged) {
+            entity.setStoreName(storeName);
+            entity.setSlug(slugFor(storeName, entity.getId()));
         }
+        entity.setDocument(document);
+        return repository.saveAndFlush(entity);
     }
 
     @Transactional
@@ -107,33 +106,9 @@ public class SellerService {
         repository.save(entity);
     }
 
-    private String generateUniqueSlug(String storeName, java.util.UUID excludeId) {
-        String baseSlug = SlugUtils.slugify(storeName);
-        String slug = baseSlug;
-        int counter = 1;
-
-        while (slugExists(slug, excludeId)) {
-            slug = baseSlug + "-" + counter;
-            counter++;
-        }
-
-        return slug;
-    }
-
-    private boolean slugExists(String slug, java.util.UUID excludeId) {
-        return repository.findBySlug(slug)
+    private String slugFor(String name, UUID excludeId) {
+        return SlugUtils.unique(name, slug -> repository.findBySlug(slug)
                 .filter(sel -> excludeId == null || !sel.getId().equals(excludeId))
-                .isPresent();
-    }
-
-    private void apply(Seller entity, SellerRequestDTO dto) {
-        entity.setStoreName(dto.storeName().trim());
-        entity.setSlug(generateUniqueSlug(dto.storeName().trim(), entity.getId()));
-        entity.setDocument(dto.document().trim());
-    }
-
-    private boolean isSame(Seller entity, Seller other) {
-        return entity.getStoreName().equals(other.getStoreName())
-                && entity.getDocument().equals(other.getDocument());
+                .isPresent());
     }
 }

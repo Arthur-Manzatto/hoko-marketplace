@@ -13,27 +13,27 @@ Produção:   https://hoko-api.onrender.com
 
 **Content-Type:** toda requisição com body usa `application/json`.
 
-**Autenticação:** nenhuma no momento. Todos os endpoints são públicos.
+**Autenticação:** nenhuma no momento. Todos os endpoints são públicos enquanto a API está em desenvolvimento; o Spring Security entra quando os módulos estiverem prontos.
+
+**Banco:** a API usa o Postgres do Supabase. Não existe banco local: rodando na sua máquina, a API também conecta no Supabase.
 
 ## 2. Antes de começar
 
-### Endereços não funcionam em produção (ainda)
+### De onde vêm os usuários
 
-Os endpoints de endereço estão implementados e funcionam **localmente**, mas em produção retornam `404`. Isso não é bug do frontend.
+Não existe `POST /api/users`. O usuário nasce no **cadastro do Supabase Auth** (`supabase.auth.signUp` no front): um trigger no banco copia ele para `public.users`, com o mesmo `id`.
 
-O motivo: o `userId` dos endereços precisa existir na tabela `public.users`, e hoje essa linha só é criada junto com a autenticação — que entra no final do projeto, junto com o Spring Security.
+- `name` e `phone` vêm do `options.data` do `signUp`
+- Telefone inválido ou já usado por outra conta é salvo como `null`, e o cadastro não falha
+- O e-mail é sempre o do Auth. Para trocar, use `supabase.auth.updateUser({ email })`; o banco atualiza sozinho
 
-```
-GET /api/users/{userId}/addresses   →  404 em produção
-```
-
-**Use as categorias para começar a codar.** Elas estão 100% funcionais nos dois ambientes.
+Para pegar o `userId` no front: `(await supabase.auth.getUser()).data.user.id`.
 
 ### Cold start
 
 O plano gratuito do Render desliga o serviço depois de **15 minutos sem tráfego**. O primeiro request depois disso leva cerca de **1 minuto** para responder.
 
-Não é bug da API. Se aparecer um loading page ou um request pendurado, é isso. Em desenvolvimento local isso não acontece.
+Não é bug da API. Se aparecer um loading page ou um request pendurado, é isso. Rodando a API na sua máquina isso não acontece.
 
 ## 3. Convenções
 
@@ -75,9 +75,9 @@ A lista de itens está em `content`.
 
 | Status | Quando acontece |
 |---|---|
-| `400` | Delete/update falhou (referenciado por outra entidade), UUID malformado na URL, JSON inválido |
+| `400` | UUID malformado na URL, JSON inválido |
 | `404` | Registro não encontrado |
-| `409` | `name` ou `slug` duplicado em categoria |
+| `409` | Conflito com o banco: valor duplicado (nome de categoria, documento de loja, telefone…) ou delete barrado por referência (categoria com produto) |
 | `422` | Falha de validação de campo (tamanho, formato, obrigatório) |
 | `500` | Erro inesperado |
 
@@ -279,16 +279,14 @@ if (res.status === 204) {
   // deletado
 }
 
-// 400: categoria referenciada por algum produto
+// 409: categoria tem produto vinculado ("Category has products linked to it")
 ```
-
-⚠️ O delete retorna `400` quando falha por referência, não `409`. É o comportamento atual da API — não trate como erro de validação no frontend.
 
 ---
 
 ## 7. Endereços
 
-⚠️ **Funciona apenas local.** Ver seção 2.
+O `userId` precisa ser de um usuário que já se cadastrou (ver seção 2).
 
 ### Modelo
 
@@ -336,8 +334,8 @@ if (res.status === 204) {
 | `complement` | não | 100 | |
 | `neighborhood` | **sim** | 100 | Bairro |
 | `city` | **sim** | 100 | |
-| `state` | **sim** | **2** | Sigla UF. Lowercase é convertido para maiúsculo (`"sp"` vira `"SP"`) |
-| `zipCode` | **sim** | 9 | Com ou sem hífen: `"13010000"` ou `"13010-000"` |
+| `state` | **sim** | **2** | Duas letras da UF. Lowercase é convertido para maiúsculo (`"sp"` vira `"SP"`) |
+| `zipCode` | **sim** | 9 | 8 dígitos, com ou sem hífen: `"13010000"` ou `"13010-000"` |
 
 Campos opcionais omitidos, ou enviados como `null`, são salvos como `null`.
 
@@ -447,13 +445,13 @@ Padrão do frontend: usar `PATCH` só quando o usuário marcar, nunca no `PUT`. 
 DELETE /api/users/{userId}/addresses/{id}
 ```
 
-Resposta: **`204` sem body**.
+Resposta: **`204` sem body**. Se era o endereço principal, ele deixa de ser (o usuário fica sem principal até marcar outro).
 
 ---
 
 ## 8. Usuários
 
-Endpoints de gestão de usuários com suporte a soft-delete.
+Endpoints de gestão de usuários com suporte a soft-delete. Não há criação por aqui: ver seção 2.
 
 ### Modelo
 
@@ -471,12 +469,11 @@ Endpoints de gestão de usuários com suporte a soft-delete.
 
 **Soft-delete:** Usuários deletados permanecem no banco com `deletedAt` preenchido. Use `includeDeleted=true` para recuperá-los.
 
-### Body de criação/edição
+### Body de edição
 
 ```json
 {
   "name": "João Silva",
-  "email": "joao@example.com",
   "phone": "11987654321"
 }
 ```
@@ -484,8 +481,9 @@ Endpoints de gestão de usuários com suporte a soft-delete.
 | Campo | Obrigatório | Limite | Validação |
 |---|---|---|---|
 | `name` | **sim** | 50 | Entre 3 e 50 caracteres |
-| `email` | **sim** | 60 | Email válido, único no banco |
-| `phone` | não | 11 | Exatamente 10 ou 11 dígitos numéricos |
+| `phone` | não | 11 | Exatamente 10 ou 11 dígitos numéricos, único no banco. `null` remove |
+
+O `email` não é editável pela API (ver seção 2). Se vier no body, é ignorado.
 
 ### Listar
 
@@ -551,46 +549,13 @@ const res = await fetch(`${API}/api/users/email/joao@example.com`);
 const usuario = await res.json();
 ```
 
-### Criar
-
-```
-POST /api/users
-```
-
-Resposta: **`201`** com o usuário criado e header `Location`.
-
-```js
-const res = await fetch(`${API}/api/users`, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    name: 'João Silva',
-    email: 'joao@example.com',
-    phone: '11987654321',
-  }),
-});
-
-if (res.status === 201) {
-  const criado = await res.json();
-  console.log(criado.id);
-}
-
-if (res.status === 409) {
-  // email já existe
-}
-
-if (res.status === 422) {
-  // validação falhou
-}
-```
-
 ### Atualizar
 
 ```
 PUT /api/users/{id}
 ```
 
-Mesmo body da criação. Resposta **`200`** com o usuário atualizado.
+Resposta **`200`** com o usuário atualizado. `409` se o telefone já pertence a outro usuário.
 
 ```js
 const res = await fetch(`${API}/api/users/${id}`, {
@@ -598,7 +563,6 @@ const res = await fetch(`${API}/api/users/${id}`, {
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
     name: 'João Santos',
-    email: 'joao.santos@example.com',
     phone: '11999998888',
   }),
 });
@@ -612,7 +576,7 @@ Se o conteúdo normalizado for idêntico ao que já está no banco, a API respon
 DELETE /api/users/{id}
 ```
 
-Resposta: **`204` sem body**. O usuário é marcado como deletado (soft-delete) e seus endereços também.
+Resposta: **`204` sem body**. O usuário é marcado como deletado (soft-delete), e o banco marca junto os endereços e a loja dele.
 
 ```js
 const res = await fetch(`${API}/api/users/${id}`, { method: 'DELETE' });
@@ -624,7 +588,93 @@ if (res.status === 204) {
 
 ---
 
-## 9. Como testar com curl
+## 9. Lojas (vendedores)
+
+Cada usuário pode ter **uma** loja. Há duas visões:
+
+- **Vitrine (pública):** `/api/sellers`, sem o documento (CPF/CNPJ)
+- **Dono da loja:** `/api/users/{userId}/seller`, com o documento
+
+### Modelo — vitrine
+
+```json
+{
+  "id": "d4e5f6a7-b8c9-0123-def0-234567890123",
+  "storeName": "Hoko Store",
+  "slug": "hoko-store",
+  "createdAt": "2026-10-05T16:53:12Z",
+  "deletedAt": null
+}
+```
+
+### Modelo — dono da loja
+
+```json
+{
+  "id": "d4e5f6a7-b8c9-0123-def0-234567890123",
+  "userId": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+  "storeName": "Hoko Store",
+  "slug": "hoko-store",
+  "document": "12345678901",
+  "createdAt": "2026-10-05T16:53:12Z",
+  "updatedAt": "2026-10-05T16:53:12Z",
+  "deletedAt": null
+}
+```
+
+O `slug` é gerado a partir do `storeName`, como nas categorias. Se já existir, ganha sufixo: `hoko-store-1`.
+
+### Body de criação/edição
+
+```json
+{
+  "storeName": "Hoko Store",
+  "document": "12345678901"
+}
+```
+
+| Campo | Obrigatório | Limite | Validação |
+|---|---|---|---|
+| `storeName` | **sim** | 80 | Entre 3 e 80 caracteres |
+| `document` | **sim** | 14 | Só dígitos: 11 (CPF) ou 14 (CNPJ). Único entre lojas ativas |
+
+### Vitrine
+
+```
+GET /api/sellers                 ?search=&includeDeleted=&page=&size=&sort=
+GET /api/sellers/{id}            ?includeDeleted=
+GET /api/sellers/slug/{slug}     ?includeDeleted=
+```
+
+`search` busca parcial no nome da loja, sem acento.
+
+```js
+const res = await fetch(`${API}/api/sellers/slug/hoko-store`);
+const loja = await res.json();
+```
+
+### Dono da loja
+
+```
+GET    /api/users/{userId}/seller   → 200 | 404 se o usuário não tem loja
+POST   /api/users/{userId}/seller   → 201 | 409 se já tem loja ou documento em uso
+PUT    /api/users/{userId}/seller   → 200 | 409 documento em uso
+DELETE /api/users/{userId}/seller   → 204 (soft-delete)
+```
+
+```js
+const res = await fetch(`${API}/api/users/${userId}/seller`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ storeName: 'Hoko Store', document: '12345678901' }),
+});
+```
+
+Depois de um soft-delete, o mesmo documento pode ser usado de novo. O mesmo usuário, porém, não abre outra loja (é uma por usuário, contando as deletadas).
+
+---
+
+## 10. Como testar com curl
 
 ```bash
 API=https://hoko-api.onrender.com
@@ -652,7 +702,7 @@ curl -X PUT $API/api/categories/{id} \
 curl -X DELETE $API/api/categories/{id}
 ```
 
-Pra criar categoria local, que é mais rápido que produção e não depende do cold start:
+Rodando a API na sua máquina (conecta no mesmo Supabase, mas sem cold start):
 
 ```bash
 API=http://localhost:8080
@@ -660,11 +710,9 @@ API=http://localhost:8080
 
 ---
 
-## 10. Pendências conhecidas
+## 11. Pendências conhecidas
 
 | Item | Impacto |
 |---|---|
-| Endereços retornam `404` em produção | Usar categorias para começar |
-| Sem autenticação | Endpoints abertos — só em ambiente de desenvolvimento |
-| Delete falho retorna `400` em vez de `409` | Tratar como erro genérico, não de validação |
+| Sem autenticação | Endpoints abertos, inclusive `includeDeleted`, edição e exclusão de qualquer usuário. Só para desenvolvimento |
 | Cold start de ~1 min a cada 15 min | Esperar no primeiro request |

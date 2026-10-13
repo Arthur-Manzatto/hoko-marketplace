@@ -8,6 +8,7 @@ import java.util.UUID;
 
 /**
  * DTO for {@link com.hokomarketplace.hokoapi.entity.Seller}
+ * Visão do dono da loja (inclui o documento). A vitrine usa {@link SellerPublicResponseDTO}.
  */
 public record SellerResponseDTO(
         UUID id,
@@ -16,7 +17,8 @@ public record SellerResponseDTO(
         String slug,
         String document,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        Instant deletedAt
 ) implements Serializable {
 
   public SellerResponseDTO(Seller entity) {
@@ -27,7 +29,8 @@ public record SellerResponseDTO(
             entity.getSlug(),
             entity.getDocument(),
             entity.getCreatedAt(),
-            entity.getUpdatedAt()
+            entity.getUpdatedAt(),
+            entity.getDeletedAt()
     );
   }
 }

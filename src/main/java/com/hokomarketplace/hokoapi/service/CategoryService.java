@@ -3,11 +3,8 @@ package com.hokomarketplace.hokoapi.service;
 import com.hokomarketplace.hokoapi.dto.CategoryRequestDTO;
 import com.hokomarketplace.hokoapi.entity.Category;
 import com.hokomarketplace.hokoapi.repository.CategoryRepository;
-import com.hokomarketplace.hokoapi.service.exception.DatabaseException;
 import com.hokomarketplace.hokoapi.service.exception.ResourceNotFoundException;
 import com.hokomarketplace.hokoapi.util.SlugUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -18,8 +15,11 @@ import java.util.UUID;
 @Service
 public class CategoryService {
 
-    @Autowired
-    private CategoryRepository repository;
+    private final CategoryRepository repository;
+
+    public CategoryService(CategoryRepository repository) {
+        this.repository = repository;
+    }
 
     @Transactional(readOnly = true)
     public Page<Category> findAll(String search, Pageable pageable){
@@ -46,12 +46,8 @@ public class CategoryService {
     public Category insert(CategoryRequestDTO dto) {
         Category entity = new Category();
         entity.setName(dto.name().trim());
-        entity.setSlug(generateUniqueSlug(dto.name().trim(), null));
-        try {
-            return repository.save(entity);
-        } catch (DataIntegrityViolationException e) {
-            throw new DatabaseException("Failed to create category: duplicate name or slug");
-        }
+        entity.setSlug(slugFor(dto.name().trim(), null));
+        return repository.saveAndFlush(entity);
     }
 
     @Transactional
@@ -63,42 +59,22 @@ public class CategoryService {
             return entity;
         }
         entity.setName(newName);
-        entity.setSlug(generateUniqueSlug(newName, entity.getId()));
-
-        try {
-            return repository.save(entity);
-        } catch (DataIntegrityViolationException e) {
-            throw new DatabaseException("Failed to update category: duplicate name or slug");
-        }
+        entity.setSlug(slugFor(newName, entity.getId()));
+        return repository.saveAndFlush(entity);
     }
 
+    /** Categoria com produto vinculado é barrada pela FK (ON DELETE RESTRICT) e vira 409. */
     @Transactional
     public void delete(UUID id) {
         Category entity = findById(id);
-        try {
-            repository.delete(entity);
-        } catch (DataIntegrityViolationException e) {
-            throw new DatabaseException("Cannot delete category: it may be referenced by other entities");
-        }
+        repository.delete(entity);
+        repository.flush();
     }
 
-    private String generateUniqueSlug(String name, java.util.UUID excludeId) {
-        String baseSlug = SlugUtils.slugify(name);
-        String slug = baseSlug;
-        int counter = 1;
-
-        while (slugExists(slug, excludeId)) {
-            slug = baseSlug + "-" + counter;
-            counter++;
-        }
-
-        return slug;
-    }
-
-    private boolean slugExists(String slug, java.util.UUID excludeId) {
-        return repository.findBySlug(slug)
+    private String slugFor(String name, UUID excludeId) {
+        return SlugUtils.unique(name, slug -> repository.findBySlug(slug)
                 .filter(cat -> excludeId == null || !cat.getId().equals(excludeId))
-                .isPresent();
+                .isPresent());
     }
 
 }

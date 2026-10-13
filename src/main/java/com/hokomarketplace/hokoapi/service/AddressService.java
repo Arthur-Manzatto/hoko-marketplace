@@ -3,10 +3,7 @@ package com.hokomarketplace.hokoapi.service;
 import com.hokomarketplace.hokoapi.dto.AddressRequestDTO;
 import com.hokomarketplace.hokoapi.entity.Address;
 import com.hokomarketplace.hokoapi.repository.AddressRepository;
-import com.hokomarketplace.hokoapi.service.exception.DatabaseException;
 import com.hokomarketplace.hokoapi.service.exception.ResourceNotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -19,11 +16,13 @@ import java.util.UUID;
 @Service
 public class AddressService {
 
-    @Autowired
-    private AddressRepository repository;
+    private final AddressRepository repository;
+    private final UserService userService;
 
-    @Autowired
-    private UserService userService;
+    public AddressService(AddressRepository repository, UserService userService) {
+        this.repository = repository;
+        this.userService = userService;
+    }
 
     @Transactional(readOnly = true)
     public Page<Address> findAll(UUID userId, boolean includeDeleted, Pageable pageable) {
@@ -50,7 +49,7 @@ public class AddressService {
         Address entity = get(userId, id, false);
         repository.clearDefaultExcept(userId, id);
         entity.setDefault(true);
-        return repository.save(entity);
+        return repository.saveAndFlush(entity);
     }
 
     @Transactional
@@ -58,11 +57,7 @@ public class AddressService {
         Address entity = new Address();
         entity.setUser(userService.get(userId, false));
         apply(entity, dto);
-        try {
-            return repository.save(entity);
-        } catch (DataIntegrityViolationException e) {
-            throw new DatabaseException("Failed to create address");
-        }
+        return repository.saveAndFlush(entity);
     }
 
     @Transactional
@@ -76,17 +71,14 @@ public class AddressService {
         }
 
         apply(entity, dto);
-        try {
-            return repository.save(entity);
-        } catch (DataIntegrityViolationException e) {
-            throw new DatabaseException("Failed to update address");
-        }
+        return repository.saveAndFlush(entity);
     }
 
     @Transactional
     public void delete(UUID userId, UUID id) {
         Address entity = get(userId, id, false);
         entity.setDeletedAt(Instant.now());
+        entity.setDefault(false);
         repository.save(entity);
     }
 

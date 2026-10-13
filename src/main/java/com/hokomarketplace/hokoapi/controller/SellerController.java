@@ -1,9 +1,8 @@
 package com.hokomarketplace.hokoapi.controller;
 
-import com.hokomarketplace.hokoapi.dto.SellerResponseDTO;
+import com.hokomarketplace.hokoapi.dto.SellerPublicResponseDTO;
 import com.hokomarketplace.hokoapi.entity.Seller;
 import com.hokomarketplace.hokoapi.service.SellerService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -15,35 +14,38 @@ import java.util.UUID;
 @RequestMapping("/api/sellers")
 public class SellerController {
 
-    @Autowired
-    private SellerService service;
+    private final SellerService service;
+
+    public SellerController(SellerService service) {
+        this.service = service;
+    }
 
     @GetMapping
-    public ResponseEntity<Page<SellerResponseDTO>> findAll(
+    public ResponseEntity<Page<SellerPublicResponseDTO>> findAll(
             @RequestParam(required = false) String search,
             @RequestParam(required = false, defaultValue = "false") boolean includeDeleted,
             Pageable pageable) {
 
-        Page<SellerResponseDTO> page = service.findAll(search, includeDeleted, pageable)
-                .map(SellerResponseDTO::new);
+        Page<SellerPublicResponseDTO> page = service.findAll(search, includeDeleted, pageable)
+                .map(SellerPublicResponseDTO::new);
         return ResponseEntity.ok(page);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<SellerResponseDTO> findById(
+    public ResponseEntity<SellerPublicResponseDTO> findById(
             @PathVariable UUID id,
             @RequestParam(required = false, defaultValue = "false") boolean includeDeleted) {
 
         Seller obj = service.get(id, includeDeleted);
-        return ResponseEntity.ok(new SellerResponseDTO(obj));
+        return ResponseEntity.ok(new SellerPublicResponseDTO(obj));
     }
 
     @GetMapping("/slug/{slug}")
-    public ResponseEntity<SellerResponseDTO> findBySlug(
+    public ResponseEntity<SellerPublicResponseDTO> findBySlug(
             @PathVariable String slug,
             @RequestParam(required = false, defaultValue = "false") boolean includeDeleted) {
 
         Seller obj = service.getBySlug(slug, includeDeleted);
-        return ResponseEntity.ok(new SellerResponseDTO(obj));
+        return ResponseEntity.ok(new SellerPublicResponseDTO(obj));
     }
 }

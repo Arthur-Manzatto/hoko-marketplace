@@ -12,10 +12,10 @@ import java.io.Serializable;
 public record SellerRequestDTO(
 
         @NotBlank
-        @Size(min = 3, max = 100)
+        @Size(min = 3, max = 80)
         String storeName,
 
         @NotBlank
-        @Pattern(message = "Document must contain 11 or 14 digits", regexp = "^\\\\d{11}$|^\\\\d{14}$")
+        @Pattern(message = "Document must contain 11 or 14 digits", regexp = "^\\d{11}$|^\\d{14}$")
         String document
 ) implements Serializable {  }

@@ -3,25 +3,30 @@ package com.hokomarketplace.hokoapi.service;
 import com.hokomarketplace.hokoapi.dto.UserRequestDTO;
 import com.hokomarketplace.hokoapi.entity.User;
 import com.hokomarketplace.hokoapi.repository.UserRepository;
-import com.hokomarketplace.hokoapi.service.exception.DatabaseException;
 import com.hokomarketplace.hokoapi.service.exception.ResourceNotFoundException;
 import com.hokomarketplace.hokoapi.util.SearchUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
 
+/**
+ * Usuários nascem no signup do Supabase Auth (trigger handle_new_user) e o
+ * e-mail é espelhado de auth.users. Por isso não há insert e o e-mail não é editável aqui.
+ */
 @Service
 public class UserService {
 
-    @Autowired
-    private UserRepository repository;
+    private final UserRepository repository;
+
+    public UserService(UserRepository repository) {
+        this.repository = repository;
+    }
 
     @Transactional(readOnly = true)
     public Page<User> findAll(String search, boolean includeDeleted, Pageable pageable) {
@@ -49,60 +54,35 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public User getByEmail(String email, boolean includeDeleted) {
+        String normalized = email.trim().toLowerCase(Locale.ROOT);
         if (includeDeleted) {
-            return repository.findByEmail(email)
+            return repository.findByEmail(normalized)
                     .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
         }
-        return repository.findByEmailActive(email)
+        return repository.findByEmailActive(normalized)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
-    }
-
-    @Transactional
-    public User insert(UserRequestDTO dto) {
-        User entity = new User();
-        apply(entity, dto);
-        try {
-            return repository.save(entity);
-        } catch (DataIntegrityViolationException e) {
-            throw new DatabaseException("Failed to create user: duplicate email or phone number");
-        }
     }
 
     @Transactional
     public User update(UUID id, UserRequestDTO dto) {
         User entity = get(id, false);
+        String name = dto.name().trim();
+        String phone = dto.phone() == null || dto.phone().isBlank() ? null : dto.phone().trim();
 
-        User candidate = new User();
-        apply(candidate, dto);
-        if (isSame(entity, candidate)) {
+        if (entity.getName().equals(name) && Objects.equals(entity.getPhone(), phone)) {
             return entity;
         }
 
-        apply(entity, dto);
-        try {
-            return repository.save(entity);
-        } catch (DataIntegrityViolationException e) {
-            throw new DatabaseException("Failed to update user: duplicate email or phone number");
-        }
+        entity.setName(name);
+        entity.setPhone(phone);
+        return repository.saveAndFlush(entity);
     }
 
+    /** Soft delete. O trigger trg_users_soft_delete propaga para endereços e loja. */
     @Transactional
     public void delete(UUID id) {
         User entity = get(id, false);
         entity.setDeletedAt(Instant.now());
         repository.save(entity);
     }
-
-    private void apply(User entity, UserRequestDTO dto) {
-        entity.setName(dto.name().trim());
-        entity.setEmail(dto.email().trim());
-        entity.setPhone(dto.phone() == null ? null : dto.phone().trim());
-    }
-
-    private boolean isSame(User entity, User other) {
-        return entity.getName().equals(other.getName())
-                && entity.getEmail().equals(other.getEmail())
-                && Objects.equals(entity.getPhone(), other.getPhone());
-    }
-
 }

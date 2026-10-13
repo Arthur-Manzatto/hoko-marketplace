@@ -5,7 +5,6 @@ import com.hokomarketplace.hokoapi.dto.SellerResponseDTO;
 import com.hokomarketplace.hokoapi.entity.Seller;
 import com.hokomarketplace.hokoapi.service.SellerService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -17,8 +16,11 @@ import java.util.UUID;
 @RequestMapping("/api/users/{userId}/seller")
 public class SellerUserController {
 
-    @Autowired
-    private SellerService service;
+    private final SellerService service;
+
+    public SellerUserController(SellerService service) {
+        this.service = service;
+    }
 
     @GetMapping
     public ResponseEntity<SellerResponseDTO> findByUserId(

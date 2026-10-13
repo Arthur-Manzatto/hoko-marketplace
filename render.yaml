@@ -8,7 +8,7 @@ services:
     healthCheckPath: /api/categories
     envVars:
       - key: SPRING_PROFILES_ACTIVE
-        value: dev
+        value: prod
       - key: DB_HOST
         value: aws-0-sa-east-1.pooler.supabase.com
       - key: DB_PORT

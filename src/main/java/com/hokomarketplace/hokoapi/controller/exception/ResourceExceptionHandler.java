@@ -1,11 +1,13 @@
 package com.hokomarketplace.hokoapi.controller.exception;
 
-import com.hokomarketplace.hokoapi.service.exception.DatabaseException;
 import com.hokomarketplace.hokoapi.service.exception.ResourceNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
+import org.hibernate.query.SemanticException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
+import org.springframework.data.core.PropertyReferenceException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -19,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.Instant;
+import java.util.Map;
 
 @RestControllerAdvice
 public class ResourceExceptionHandler {
@@ -41,23 +44,18 @@ public class ResourceExceptionHandler {
         return ResponseEntity.status(status).body(error);
     }
 
-    @ExceptionHandler(DatabaseException.class)
-    public ResponseEntity<StandardError> database(
-            DatabaseException e,
-            HttpServletRequest request
-    ) {
-        HttpStatus status = e.getMessage().contains("duplicate")
-                ? HttpStatus.CONFLICT
-                : HttpStatus.BAD_REQUEST;
-        StandardError error = new StandardError(
-                Instant.now(),
-                status.value(),
-                "Database error",
-                e.getMessage(),
-                request.getRequestURI()
-        );
-        return ResponseEntity.status(status).body(error);
-    }
+    /** Nome da constraint no Supabase -> mensagem para o front. */
+    private static final Map<String, String> CONSTRAINT_MESSAGES = Map.ofEntries(
+            Map.entry("categories_name_key", "A category with this name already exists"),
+            Map.entry("categories_slug_key", "A category with this slug already exists"),
+            Map.entry("products_category_id_fkey", "Category has products linked to it"),
+            Map.entry("users_email_key", "A user with this email already exists"),
+            Map.entry("users_phone_key", "A user with this phone number already exists"),
+            Map.entry("sellers_user_id_key", "This user already has a store"),
+            Map.entry("sellers_document_active_key", "A store with this document already exists"),
+            Map.entry("sellers_slug_key", "A store with this slug already exists"),
+            Map.entry("idx_addresses_user_default", "User already has a default address")
+    );
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<StandardError> dataIntegrityViolation(
@@ -65,15 +63,14 @@ public class ResourceExceptionHandler {
             HttpServletRequest request
     ) {
         HttpStatus status = HttpStatus.CONFLICT;
-        String message = "Data integrity violation";
-        if (e.getMessage().contains("categories_name_key")) {
-            message = "A category with this name already exists";
-        } else if (e.getMessage().contains("categories_slug_key")) {
-            message = "A category with this slug already exists";
-        } else if (e.getMessage().contains("users_email_key")) {
-        message = "A user with this email already exists";
-        } else if (e.getMessage().contains("users_phone_key")) {
-        message = "A user with this phone number already exists";
+        String detail = String.valueOf(e.getMostSpecificCause().getMessage());
+        String message = CONSTRAINT_MESSAGES.entrySet().stream()
+                .filter(entry -> detail.contains(entry.getKey()))
+                .map(Map.Entry::getValue)
+                .findFirst()
+                .orElse("Data integrity violation");
+        if (message.equals("Data integrity violation")) {
+            logger.warn("Unmapped integrity violation at {}: {}", request.getRequestURI(), detail);
         }
 
         StandardError error = new StandardError(
@@ -141,6 +138,22 @@ public class ResourceExceptionHandler {
         return ResponseEntity.status(status).body(error);
     }
 
+    @ExceptionHandler(PropertyReferenceException.class)
+    public ResponseEntity<StandardError> invalidSort(
+            PropertyReferenceException e,
+            HttpServletRequest request
+    ) {
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+        StandardError error = new StandardError(
+                Instant.now(),
+                status.value(),
+                "Bad request",
+                "Invalid sort property '" + e.getPropertyName() + "'",
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(status).body(error);
+    }
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<StandardError> unreadableBody(
             HttpMessageNotReadableException e,
@@ -173,11 +186,40 @@ public class ResourceExceptionHandler {
         return ResponseEntity.status(status).body(error);
     }
 
+    /**
+     * Em queries com @Query, um sort inválido só é rejeitado pelo parser do Hibernate
+     * (SemanticException), que o Spring embrulha nesta exceção. Outras causas são bug: 500.
+     */
+    @ExceptionHandler(InvalidDataAccessApiUsageException.class)
+    public ResponseEntity<StandardError> invalidQuery(
+            InvalidDataAccessApiUsageException e,
+            HttpServletRequest request
+    ) {
+        for (Throwable cause = e; cause != null; cause = cause.getCause()) {
+            if (cause instanceof SemanticException) {
+                HttpStatus status = HttpStatus.BAD_REQUEST;
+                StandardError error = new StandardError(
+                        Instant.now(),
+                        status.value(),
+                        "Bad request",
+                        "Invalid sort or query parameter",
+                        request.getRequestURI()
+                );
+                return ResponseEntity.status(status).body(error);
+            }
+        }
+        return internalError(e, request);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<StandardError> global(
             Exception e,
             HttpServletRequest request
     ) {
+        return internalError(e, request);
+    }
+
+    private ResponseEntity<StandardError> internalError(Exception e, HttpServletRequest request) {
         HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
         logger.error("Unexpected error occurred at {}: {}",
                 request.getRequestURI(),
@@ -192,7 +234,4 @@ public class ResourceExceptionHandler {
         );
         return ResponseEntity.status(status).body(error);
     }
-
-
-
 }

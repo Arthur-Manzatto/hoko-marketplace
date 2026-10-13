@@ -1,6 +1,7 @@
 package com.hokomarketplace.hokoapi.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 import java.io.Serializable;
@@ -32,10 +33,10 @@ public record AddressRequestDTO(
         String city,
 
         @NotBlank
-        @Size(max = 2, message = "State must be the 2-letter UF code")
+        @Pattern(regexp = "^[A-Za-z]{2}$", message = "State must be the 2-letter UF code")
         String state,
 
         @NotBlank
-        @Size(max = 9)
+        @Pattern(regexp = "^\\d{5}-?\\d{3}$", message = "Zip code must be 00000-000 or 00000000")
         String zipCode
 ) implements Serializable {  }
