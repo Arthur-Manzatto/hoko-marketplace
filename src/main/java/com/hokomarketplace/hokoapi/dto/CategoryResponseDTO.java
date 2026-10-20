@@ -13,6 +13,7 @@ public record CategoryResponseDTO(
         UUID id,
         String name,
         String slug,
+        String icon,
         Instant createdAt,
         Instant updatedAt
 ) implements Serializable {
@@ -22,6 +23,7 @@ public record CategoryResponseDTO(
             entity.getId(),
             entity.getName(),
             entity.getSlug(),
+            entity.getIcon(),
             entity.getCreatedAt(),
             entity.getUpdatedAt()
     );

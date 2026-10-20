@@ -47,6 +47,7 @@ public class CategoryService {
         Category entity = new Category();
         entity.setName(dto.name().trim());
         entity.setSlug(slugFor(dto.name().trim(), null));
+        entity.setIcon(dto.icon().trim());
         return repository.saveAndFlush(entity);
     }
 
@@ -54,12 +55,16 @@ public class CategoryService {
     public Category update(UUID id, CategoryRequestDTO dto) {
         Category entity = findById(id);
         String newName = dto.name().trim();
+        String newIcon = dto.icon().trim();
 
-        if (entity.getName().equals(newName)) {
+        if (entity.getName().equals(newName) && entity.getIcon().equals(newIcon)) {
             return entity;
         }
-        entity.setName(newName);
-        entity.setSlug(slugFor(newName, entity.getId()));
+        if (!entity.getName().equals(newName)) {
+            entity.setName(newName);
+            entity.setSlug(slugFor(newName, entity.getId()));
+        }
+        entity.setIcon(newIcon);
         return repository.saveAndFlush(entity);
     }
 

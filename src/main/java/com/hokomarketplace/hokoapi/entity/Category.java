@@ -27,6 +27,9 @@ public class Category implements Serializable {
     @Column(nullable = false, unique = true, length = 60)
     private String slug;
 
+    @Column(nullable = false, length = 50)
+    private String icon;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -36,6 +39,10 @@ public class Category implements Serializable {
     private Instant updatedAt;
 
     public Category() {
+    }
+
+    public UUID getId() {
+        return id;
     }
 
     public String getName() {
@@ -54,8 +61,12 @@ public class Category implements Serializable {
         this.slug = slug;
     }
 
-    public UUID getId() {
-        return id;
+    public String getIcon() {
+        return icon;
+    }
+
+    public void setIcon(String icon) {
+        this.icon = icon;
     }
 
     public Instant getCreatedAt() {

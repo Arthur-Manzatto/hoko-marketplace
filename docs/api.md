@@ -135,12 +135,23 @@ Já existem 4 categorias no banco: `eletronicos`, `perifericos`, `roupas`, `casa
   "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   "name": "Eletrônicos",
   "slug": "eletronicos",
+  "icon": "bi-phone",
   "createdAt": "2026-10-05T16:53:12Z",
   "updatedAt": "2026-10-05T16:53:12Z"
 }
 ```
 
-O `slug` é gerado pelo backend a partir do `name`: minúsculo, sem acento, hífen no lugar de espaço. `"Casa & Decoração"` vira `casa-decoracao`. **Você não manda o slug no body** — só o `name`.
+O `slug` é gerado pelo backend a partir do `name`: minúsculo, sem acento, hífen no lugar de espaço. `"Casa & Decoração"` vira `casa-decoracao`. **Você não manda o slug no body** — só `name` e `icon`.
+
+O `icon` é a classe do ícone do [Bootstrap Icons](https://icons.getbootstrap.com) **sem o `bi` base** (ex: `bi-phone`, não `bi bi-phone`). O `bi` é a classe base da fonte, igual pra todos, então vai no template:
+
+```js
+container.innerHTML = page.content.map(cat => `
+  <a href="/categorias.html?slug=${cat.slug}" class="categoria-card">
+    <div class="categoria-icon"><i class="bi ${cat.icon}"></i></div>
+    <span class="categoria-nome">${cat.name}</span>
+  </a>`).join('');
+```
 
 ### Listar
 
@@ -208,10 +219,10 @@ const categoria = await res.json();
 POST /api/categories
 ```
 
-Body — só `name`:
+Body — `name` e `icon` (os dois obrigatórios):
 
 ```json
-{ "name": "Instrumentos Musicais" }
+{ "name": "Instrumentos Musicais", "icon": "bi-music-note-beamed" }
 ```
 
 Resposta: **`201`** com o objeto criado e header `Location` com a URL do recurso novo.
@@ -220,7 +231,7 @@ Resposta: **`201`** com o objeto criado e header `Location` com a URL do recurso
 const res = await fetch(`${API}/api/categories`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ name: 'Instrumentos Musicais' }),
+  body: JSON.stringify({ name: 'Instrumentos Musicais', icon: 'bi-music-note-beamed' }),
 });
 
 if (res.status === 201) {
@@ -234,15 +245,18 @@ if (res.status === 409) {
 
 if (res.status === 422) {
   // name vazio ou com menos de 3 / mais de 50 caracteres
+  // icon vazio ou fora do formato bi-xxx
 }
 ```
 
-**Validação do `name`:**
+**Validação do body:**
 
-| Regra | Erro |
-|---|---|
-| Obrigatório | `Name is required` |
-| Entre 3 e 50 caracteres | `Name must be between 3 and 50 characters` |
+| Campo | Regra | Erro |
+|---|---|---|
+| `name` | Obrigatório | `Name is required` |
+| `name` | Entre 3 e 50 caracteres | `Name must be between 3 and 50 characters` |
+| `icon` | Obrigatório | `Icon is required` |
+| `icon` | Formato `bi-` + letras minúsculas, números e hífen (máx. 50) | `Icon must be a Bootstrap Icons class, e.g. bi-phone` |
 
 ### Atualizar
 
@@ -256,13 +270,13 @@ Mesma validação e mesmo body do `POST`. Resposta **`200`** com a categoria atu
 const res = await fetch(`${API}/api/categories/${id}`, {
   method: 'PUT',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ name: 'Informática' }),
+  body: JSON.stringify({ name: 'Informática', icon: 'bi-laptop' }),
 });
 ```
 
-Se mandar o mesmo `name` que já está no banco, a API responde `200` **sem executar o UPDATE** — otimização para evitar gravação à toa.
+Se mandar o mesmo `name` e o mesmo `icon` que já estão no banco, a API responde `200` **sem executar o UPDATE** — otimização para evitar gravação à toa.
 
-O `slug` é recalculado quando o `name` muda.
+O `slug` é recalculado só quando o `name` muda; trocar só o `icon` mantém o slug.
 
 ### Deletar
 
@@ -691,12 +705,12 @@ curl $API/api/categories/slug/eletronicos
 # Criar
 curl -X POST $API/api/categories \
   -H 'Content-Type: application/json' \
-  -d '{"name":"Instrumentos Musicais"}'
+  -d '{"name":"Instrumentos Musicais","icon":"bi-music-note-beamed"}'
 
 # Atualizar
 curl -X PUT $API/api/categories/{id} \
   -H 'Content-Type: application/json' \
-  -d '{"name":"Informática"}'
+  -d '{"name":"Informática","icon":"bi-laptop"}'
 
 # Deletar
 curl -X DELETE $API/api/categories/{id}
