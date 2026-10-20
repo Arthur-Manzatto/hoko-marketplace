@@ -126,7 +126,7 @@ body.errors?.forEach(e => {
 
 Funciona em local e produção.
 
-Já existem 4 categorias no banco: `eletronicos`, `perifericos`, `roupas`, `casa-decoracao`.
+Já existem 18 categorias no banco, cada uma com ícone: `eletronicos`, `perifericos`, `roupas`, `casa-decoracao`, `games`, `livros`, `esportes`, `brinquedos`, `beleza-perfumaria`, `saude`, `ferramentas`, `automotivo`, `mercado`, `jardim`, `joias-acessorios`, `papelaria`, `eletrodomesticos`, `bebes`.
 
 ### Modelo
 
