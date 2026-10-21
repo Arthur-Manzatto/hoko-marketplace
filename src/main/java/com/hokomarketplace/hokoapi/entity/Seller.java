@@ -53,6 +53,9 @@ public class Seller implements Serializable {
     @Column(name = "deleted_at")
     private Instant deletedAt;
 
+    public Seller() {
+    }
+
     public UUID getId() {
         return id;
     }

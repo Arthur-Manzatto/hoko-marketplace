@@ -54,7 +54,11 @@ public class ResourceExceptionHandler {
             Map.entry("sellers_user_id_key", "This user already has a store"),
             Map.entry("sellers_document_active_key", "A store with this document already exists"),
             Map.entry("sellers_slug_key", "A store with this slug already exists"),
-            Map.entry("idx_addresses_user_default", "User already has a default address")
+            Map.entry("idx_addresses_user_default", "User already has a default address"),
+            Map.entry("products_slug_key", "A product with this slug already exists"),
+            Map.entry("products_price_check", "Price must be zero or positive"),
+            Map.entry("products_quantity_check", "Quantity must be zero or positive"),
+            Map.entry("product_images_url_https", "Image URL must be https")
     );
 
     @ExceptionHandler(DataIntegrityViolationException.class)
@@ -88,7 +92,7 @@ public class ResourceExceptionHandler {
             ConstraintViolationException e,
             HttpServletRequest request
     ) {
-        HttpStatus status = HttpStatus.UNPROCESSABLE_ENTITY;
+        HttpStatus status = HttpStatus.UNPROCESSABLE_CONTENT;
         ValidationError error = new ValidationError(
                 Instant.now(),
                 status.value(),
@@ -108,7 +112,7 @@ public class ResourceExceptionHandler {
             MethodArgumentNotValidException e,
             HttpServletRequest request
     ) {
-        HttpStatus status = HttpStatus.UNPROCESSABLE_ENTITY;
+        HttpStatus status = HttpStatus.UNPROCESSABLE_CONTENT;
         ValidationError error = new ValidationError(
                 Instant.now(),
                 status.value(),
@@ -186,10 +190,6 @@ public class ResourceExceptionHandler {
         return ResponseEntity.status(status).body(error);
     }
 
-    /**
-     * Em queries com @Query, um sort inválido só é rejeitado pelo parser do Hibernate
-     * (SemanticException), que o Spring embrulha nesta exceção. Outras causas são bug: 500.
-     */
     @ExceptionHandler(InvalidDataAccessApiUsageException.class)
     public ResponseEntity<StandardError> invalidQuery(
             InvalidDataAccessApiUsageException e,
@@ -217,6 +217,22 @@ public class ResourceExceptionHandler {
             HttpServletRequest request
     ) {
         return internalError(e, request);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<StandardError> illegalArgument(
+            IllegalArgumentException e,
+            HttpServletRequest request
+    ) {
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+        StandardError error = new StandardError(
+                Instant.now(),
+                status.value(),
+                "Bad request",
+                e.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(status).body(error);
     }
 
     private ResponseEntity<StandardError> internalError(Exception e, HttpServletRequest request) {

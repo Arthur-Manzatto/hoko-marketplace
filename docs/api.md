@@ -75,7 +75,7 @@ A lista de itens está em `content`.
 
 | Status | Quando acontece |
 |---|---|
-| `400` | UUID malformado na URL, JSON inválido |
+| `400` | UUID malformado na URL, JSON inválido, parâmetro de filtro inválido (`sort` com campo inexistente, `minPrice > maxPrice`) |
 | `404` | Registro não encontrado |
 | `409` | Conflito com o banco: valor duplicado (nome de categoria, documento de loja, telefone…) ou delete barrado por referência (categoria com produto) |
 | `422` | Falha de validação de campo (tamanho, formato, obrigatório) |
@@ -673,7 +673,7 @@ const loja = await res.json();
 GET    /api/users/{userId}/seller   → 200 | 404 se o usuário não tem loja
 POST   /api/users/{userId}/seller   → 201 | 409 se já tem loja ou documento em uso
 PUT    /api/users/{userId}/seller   → 200 | 409 documento em uso
-DELETE /api/users/{userId}/seller   → 204 (soft-delete)
+DELETE /api/users/{userId}/seller   → 204 (soft-delete; os produtos da loja também são marcados como deletados)
 ```
 
 ```js
@@ -688,7 +688,210 @@ Depois de um soft-delete, o mesmo documento pode ser usado de novo. O mesmo usu�
 
 ---
 
-## 10. Como testar com curl
+## 10. Produtos
+
+Produtos pertencem a uma loja e têm até **8 fotos**. Há duas visões:
+
+- **Vitrine (pública):** `/api/products`
+- **Dono da loja:** `/api/users/{userId}/seller/products`
+
+O usuário precisa ter uma loja (seção 9) para cadastrar produtos.
+
+### Modelo — lista (cards)
+
+Usado em `GET /api/products` e na listagem do dono. Traz só a foto de capa:
+
+```json
+{
+  "id": "e5f6a7b8-c9d0-1234-ef01-345678901234",
+  "name": "Teclado Mecânico",
+  "slug": "teclado-mecanico",
+  "price": 459.90,
+  "quantity": 10,
+  "coverImageUrl": "https://ufdgevqpgowaaxblrnwf.supabase.co/storage/v1/object/public/product-images/<userId>/a1b2.webp",
+  "categoryName": "Periféricos",
+  "categorySlug": "perifericos",
+  "sellerStoreName": "Hoko Store",
+  "sellerSlug": "hoko-store"
+}
+```
+
+`coverImageUrl` é a primeira foto, ou `null` se o produto não tem foto.
+
+### Modelo — detalhe
+
+Usado em `GET /api/products/{id}`, `/slug/{slug}` e nas respostas de criar e editar:
+
+```json
+{
+  "id": "e5f6a7b8-c9d0-1234-ef01-345678901234",
+  "name": "Teclado Mecânico",
+  "slug": "teclado-mecanico",
+  "description": "Switches vermelhos, ABNT2.",
+  "price": 459.90,
+  "quantity": 10,
+  "imageUrls": [
+    "https://.../product-images/<userId>/a1b2.webp",
+    "https://.../product-images/<userId>/c3d4.webp"
+  ],
+  "sellerId": "d4e5f6a7-b8c9-0123-def0-234567890123",
+  "sellerStoreName": "Hoko Store",
+  "sellerSlug": "hoko-store",
+  "categoryId": "53a8e026-0b6d-44ba-b5d4-54b57b9d2485",
+  "categoryName": "Periféricos",
+  "categorySlug": "perifericos",
+  "createdAt": "2026-10-21T16:53:12Z",
+  "updatedAt": "2026-10-21T16:53:12Z",
+  "deletedAt": null
+}
+```
+
+`imageUrls` vem na ordem das fotos, e a primeira é a capa. Produto sem foto devolve `[]`.
+
+O `slug` é gerado a partir do `name`, como nas categorias. Se já existir, ganha sufixo: `teclado-mecanico-1`. Só muda quando o `name` muda.
+
+### Body de criação/edição
+
+```json
+{
+  "name": "Teclado Mecânico",
+  "description": "Switches vermelhos, ABNT2.",
+  "price": 459.90,
+  "quantity": 10,
+  "categoryId": "53a8e026-0b6d-44ba-b5d4-54b57b9d2485",
+  "imageUrls": [
+    "https://.../product-images/<userId>/a1b2.webp",
+    "https://.../product-images/<userId>/c3d4.webp"
+  ]
+}
+```
+
+| Campo | Obrigatório | Validação |
+|---|---|---|
+| `name` | **sim** | Entre 3 e 120 caracteres |
+| `description` | não | Até 5000 caracteres. Vazio vira `null` |
+| `price` | **sim** | `>= 0`, no máximo 2 casas decimais |
+| `quantity` | **sim** | Inteiro `>= 0` (estoque) |
+| `categoryId` | **sim** | Id de uma categoria existente (senão `404`) |
+| `imageUrls` | não | Até **8** URLs, cada uma `https://` e com até 2048 caracteres |
+
+Sobre `imageUrls`:
+- A **ordem do array é a ordem das fotos**, e a primeira é a capa.
+- No `PUT`, o array **substitui todas** as fotos. Para reordenar, mande na nova ordem; para remover uma, mande sem ela.
+- `[]` ou campo ausente = produto sem fotos.
+- Erro de validação numa URL vem com o índice: `"fieldName": "imageUrls[2]"`.
+
+### Vitrine
+
+```
+GET /api/products                ?search=&categoryId=&categorySlug=&sellerId=&minPrice=&maxPrice=&inStock=&page=&size=&sort=
+GET /api/products/{id}
+GET /api/products/slug/{slug}
+```
+
+Só lista produtos ativos (não deletados).
+
+| Filtro | Tipo | Descrição |
+|---|---|---|
+| `search` | string | Busca parcial no nome, sem acento e sem diferenciar maiúsculas |
+| `categoryId` | UUID | Produtos de uma categoria |
+| `categorySlug` | string | O mesmo, pelo slug: `perifericos` |
+| `sellerId` | UUID | Produtos de uma loja (vitrine da loja). Loja inexistente → `404` |
+| `minPrice` | número | Preço `>=` |
+| `maxPrice` | número | Preço `<=`. Se `minPrice > maxPrice` → `400` |
+| `inStock` | boolean | `true` = só com `quantity > 0` |
+| `page`, `size` | int | Paginação (seção 4) |
+| `sort` | string | `price,asc`, `price,desc`, `createdAt,desc`, `name,asc` |
+
+Os filtros se combinam (AND). Filtro não enviado não restringe nada.
+
+```js
+// Página de categoria, mais baratos primeiro, só com estoque
+const res = await fetch(
+  `${API}/api/products?categorySlug=perifericos&inStock=true&sort=price,asc&size=12`
+);
+const page = await res.json();
+page.content; // cards (modelo de lista)
+
+// Página do produto
+const produto = await (await fetch(`${API}/api/products/slug/teclado-mecanico`)).json();
+produto.imageUrls; // galeria
+```
+
+### Dono da loja
+
+```
+GET    /api/users/{userId}/seller/products              ?includeDeleted=&page=&size=&sort=   → 200 (modelo de lista)
+POST   /api/users/{userId}/seller/products                                                    → 201 + Location
+PUT    /api/users/{userId}/seller/products/{id}                                               → 200
+PATCH  /api/users/{userId}/seller/products/{id}/stock    body { "quantity": 5 }               → 200
+DELETE /api/users/{userId}/seller/products/{id}                                               → 204 (soft-delete)
+```
+
+```js
+const res = await fetch(`${API}/api/users/${userId}/seller/products`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    name: 'Teclado Mecânico',
+    description: 'Switches vermelhos, ABNT2.',
+    price: 459.90,
+    quantity: 10,
+    categoryId,
+    imageUrls, // URLs já enviadas ao Storage (ver abaixo)
+  }),
+});
+
+if (res.status === 201) {
+  const produto = await res.json();
+}
+```
+
+Se o `PUT` mandar exatamente o que já está salvo, a API responde `200` sem gravar.
+
+### Erros do módulo
+
+| Status | Quando |
+|---|---|
+| `404` | Produto inexistente ou deletado; `categoryId` inexistente; usuário sem loja; produto de **outra** loja (mesma resposta, para não revelar que o produto existe) |
+| `409` | Slug duplicado (raro, porque o slug ganha sufixo automático) |
+| `422` | Validação de campo (`fieldName` como `price`, `imageUrls[0]`…) |
+| `400` | `minPrice > maxPrice`, ou `sort` com campo inexistente |
+
+**Soft-delete:** produto deletado some da vitrine e do detalhe, mas continua no banco. Aparece para o dono com `includeDeleted=true`. Apagar a loja ou o usuário também marca os produtos como deletados.
+
+### Upload das fotos (front)
+
+As fotos **não passam pela API**. O front sobe o arquivo direto no **Supabase Storage** e manda só as URLs em `imageUrls`.
+
+- Bucket: `product-images` (público para leitura)
+- Limites: até **5 MB** por arquivo; `image/jpeg`, `image/png` ou `image/webp`
+- Caminho obrigatório: `{userId}/{qualquer-nome}`. O usuário precisa estar logado e só pode subir (e apagar) dentro da própria pasta; fora dela, o Storage recusa.
+
+```js
+import { supabase } from "./supabase-client.js";
+
+export async function uploadProductImage(file) {
+  const { data: { user } } = await supabase.auth.getUser();
+  const ext = file.name.split(".").pop();
+  const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
+
+  const { error } = await supabase.storage.from("product-images").upload(path, file);
+  if (error) throw error;
+
+  return supabase.storage.from("product-images").getPublicUrl(path).data.publicUrl;
+}
+```
+
+Fluxo da tela de cadastro e edição:
+1. O usuário escolhe as fotos. Para cada uma, chame `uploadProductImage` e guarde a URL.
+2. Deixe reordenar na tela (a primeira é a capa).
+3. Mande o array de URLs em `imageUrls` no `POST` ou `PUT`.
+4. Ao **remover** uma foto, apague também o arquivo: `supabase.storage.from("product-images").remove([path])`. A API só tira a URL do produto; o arquivo no Storage fica lá se o front não apagar.
+
+---
+
+## 11. Como testar com curl
 
 ```bash
 API=https://hoko-api.onrender.com
@@ -724,7 +927,7 @@ API=http://localhost:8080
 
 ---
 
-## 11. Pendências conhecidas
+## 12. Pendências conhecidas
 
 | Item | Impacto |
 |---|---|
