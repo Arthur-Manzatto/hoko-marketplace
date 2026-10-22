@@ -147,10 +147,10 @@
             </div>
 
 
-            <div class="row">
+            <div class="row" id="categories_row">
 
                 <div class="col-6 col-md-3 col-lg-custom mb-3">
-                
+
                     <a href="/categorias.html?slug=eletronicos" class="categoria-card">
                         <div class="categoria-icon">
                             <i class="bi bi-phone"></i>
@@ -160,6 +160,63 @@
                 </div>
 
             </div>
+
+
+            <div class="d-flex justify-content-between align-items-end mb-4">
+                <div>
+                    <h2 class="categoria-titulo mb-1">Ofertas Especiais</h2>
+                    <p class="categoria-subtitulo mb-0">Selecionados a dedo pra você hoje.</p>
+                </div>
+                <a href="#" class="categoria-verTodas">Ver todas <i class="bi bi-chevron-right"></i></a>
+            </div>
+
+            <div class="row">
+                <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4">
+                    <div class="product-card">
+
+                        <div class="pimg-container">
+
+                            <img src="/img/home1.png" class="product-img">
+
+                            <span class="product-obs">Mais vendido</span>
+
+                            <button type="button" class="product-favorite" aria-label="Adicionar aos favoritos">
+                                <i class="bi bi-heart"></i>
+                            </button>
+
+                        </div>
+
+                        <div class="product-info">
+
+                            <div class="product-rating">
+                                <i class="bi bi-star-fill"></i>
+                                <span>4.8</span>
+                                <span class="product-store">· TechStore Oficial</span>
+                            </div>
+
+                            <h3 class="product-name">
+                                Fone Bluetooth HoKo Sound
+                            </h3>
+
+                            <div class="product-prices">
+                                <span class="product-price">R$ 249,90</span>
+                                <span class="product-old-price">R$ 329,90</span>
+                            </div>
+
+                            <button type="button" class="product-add">
+                                <i class="bi bi-cart3"></i>
+                                Adicionar
+                            </button>
+
+                        </div>
+
+                    </div>
+                </div>
+                
+                
+            </div>
+
+
         </div>
     </section>
 
@@ -191,6 +248,7 @@
         crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/js/sidebar.js"></script>
+    <script src="/js/index.js"></script>
     <script type="module" src="/js/session.js"></script>
 
 </body>
