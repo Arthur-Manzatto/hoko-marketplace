@@ -16,11 +16,13 @@ function closeMenu() {
     setMenuOpen(false);
 }
 
-supabase.auth.onAuthStateChange((event, session) => {
+function renderSession(session) {
     const logged = Boolean(session);
 
     loginLink.hidden = logged;
     profileWrap.hidden = !logged;
+    // o HTML começa com o "Entrar" invisível (data-auth="pending") para não piscar antes do avatar
+    loginLink.removeAttribute("data-auth");
 
     if (!logged) {
         closeMenu();
@@ -30,7 +32,13 @@ supabase.auth.onAuthStateChange((event, session) => {
     const name = session.user.user_metadata?.name ?? session.user.email;
     userName.textContent = name;
     profileInitial.textContent = name.trim().charAt(0).toUpperCase();
-});
+}
+
+// getSession lê a sessão salva no navegador: resolve na hora, sem ir à rede
+const { data: { session: initialSession } } = await supabase.auth.getSession();
+renderSession(initialSession);
+
+supabase.auth.onAuthStateChange((event, session) => renderSession(session));
 
 profileButton.addEventListener("click", (event) => {
     event.stopPropagation();
