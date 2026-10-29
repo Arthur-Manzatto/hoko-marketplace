@@ -10,6 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -48,6 +49,7 @@ public class CategoryService {
         entity.setName(dto.name().trim());
         entity.setSlug(slugFor(dto.name().trim(), null));
         entity.setIcon(dto.icon().trim());
+        entity.setDescription(clean(dto.description()));
         return repository.saveAndFlush(entity);
     }
 
@@ -56,8 +58,11 @@ public class CategoryService {
         Category entity = findById(id);
         String newName = dto.name().trim();
         String newIcon = dto.icon().trim();
+        String newDescription = clean(dto.description());
 
-        if (entity.getName().equals(newName) && entity.getIcon().equals(newIcon)) {
+        if (entity.getName().equals(newName)
+                && entity.getIcon().equals(newIcon)
+                && Objects.equals(entity.getDescription(), newDescription)) {
             return entity;
         }
         if (!entity.getName().equals(newName)) {
@@ -65,6 +70,7 @@ public class CategoryService {
             entity.setSlug(slugFor(newName, entity.getId()));
         }
         entity.setIcon(newIcon);
+        entity.setDescription(newDescription);
         return repository.saveAndFlush(entity);
     }
 
@@ -80,6 +86,11 @@ public class CategoryService {
         return SlugUtils.unique(name, slug -> repository.findBySlug(slug)
                 .filter(cat -> excludeId == null || !cat.getId().equals(excludeId))
                 .isPresent());
+    }
+
+    /** Texto opcional: trim, e vazio vira null. */
+    private static String clean(String text) {
+        return text == null || text.isBlank() ? null : text.trim();
     }
 
 }

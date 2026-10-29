@@ -126,7 +126,7 @@ body.errors?.forEach(e => {
 
 Funciona em local e produção.
 
-Já existem 18 categorias no banco, cada uma com ícone: `eletronicos`, `perifericos`, `roupas`, `casa-decoracao`, `games`, `livros`, `esportes`, `brinquedos`, `beleza-perfumaria`, `saude`, `ferramentas`, `automotivo`, `mercado`, `jardim`, `joias-acessorios`, `papelaria`, `eletrodomesticos`, `bebes`.
+Já existem 18 categorias no banco, cada uma com ícone e descrição: `eletronicos`, `perifericos`, `roupas`, `casa-decoracao`, `games`, `livros`, `esportes`, `brinquedos`, `beleza-perfumaria`, `saude`, `ferramentas`, `automotivo`, `mercado`, `jardim`, `joias-acessorios`, `papelaria`, `eletrodomesticos`, `bebes`.
 
 ### Modelo
 
@@ -136,12 +136,15 @@ Já existem 18 categorias no banco, cada uma com ícone: `eletronicos`, `perifer
   "name": "Eletrônicos",
   "slug": "eletronicos",
   "icon": "bi-phone",
+  "description": "Smartphones, notebooks, fones e muito mais",
   "createdAt": "2026-10-05T16:53:12Z",
   "updatedAt": "2026-10-05T16:53:12Z"
 }
 ```
 
-O `slug` é gerado pelo backend a partir do `name`: minúsculo, sem acento, hífen no lugar de espaço. `"Casa & Decoração"` vira `casa-decoracao`. **Você não manda o slug no body** — só `name` e `icon`.
+O `slug` é gerado pelo backend a partir do `name`: minúsculo, sem acento, hífen no lugar de espaço. `"Casa & Decoração"` vira `casa-decoracao`. **Você não manda o slug no body** — só `name`, `icon` e, opcionalmente, `description`.
+
+A `description` é o subtítulo da categoria (ex: no cabeçalho de `categorias.html`). Pode vir `null` se a categoria não tiver descrição, então use `${cat.description ?? ''}` no template.
 
 O `icon` é a classe do ícone do [Bootstrap Icons](https://icons.getbootstrap.com) **sem o `bi` base** (ex: `bi-phone`, não `bi bi-phone`). O `bi` é a classe base da fonte, igual pra todos, então vai no template:
 
@@ -219,10 +222,14 @@ const categoria = await res.json();
 POST /api/categories
 ```
 
-Body — `name` e `icon` (os dois obrigatórios):
+Body — `name` e `icon` obrigatórios, `description` opcional:
 
 ```json
-{ "name": "Instrumentos Musicais", "icon": "bi-music-note-beamed" }
+{
+  "name": "Instrumentos Musicais",
+  "icon": "bi-music-note-beamed",
+  "description": "Violões, teclados, baterias e acessórios"
+}
 ```
 
 Resposta: **`201`** com o objeto criado e header `Location` com a URL do recurso novo.
@@ -231,7 +238,11 @@ Resposta: **`201`** com o objeto criado e header `Location` com a URL do recurso
 const res = await fetch(`${API}/api/categories`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ name: 'Instrumentos Musicais', icon: 'bi-music-note-beamed' }),
+  body: JSON.stringify({
+    name: 'Instrumentos Musicais',
+    icon: 'bi-music-note-beamed',
+    description: 'Violões, teclados, baterias e acessórios',
+  }),
 });
 
 if (res.status === 201) {
@@ -246,6 +257,7 @@ if (res.status === 409) {
 if (res.status === 422) {
   // name vazio ou com menos de 3 / mais de 50 caracteres
   // icon vazio ou fora do formato bi-xxx
+  // description com mais de 160 caracteres
 }
 ```
 
@@ -257,6 +269,7 @@ if (res.status === 422) {
 | `name` | Entre 3 e 50 caracteres | `Name must be between 3 and 50 characters` |
 | `icon` | Obrigatório | `Icon is required` |
 | `icon` | Formato `bi-` + letras minúsculas, números e hífen (máx. 50) | `Icon must be a Bootstrap Icons class, e.g. bi-phone` |
+| `description` | Opcional, até 160 caracteres. Vazio ou só espaços vira `null` | `Description must be at most 160 characters` |
 
 ### Atualizar
 
@@ -270,13 +283,19 @@ Mesma validação e mesmo body do `POST`. Resposta **`200`** com a categoria atu
 const res = await fetch(`${API}/api/categories/${id}`, {
   method: 'PUT',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ name: 'Informática', icon: 'bi-laptop' }),
+  body: JSON.stringify({
+    name: 'Informática',
+    icon: 'bi-laptop',
+    description: 'Notebooks, monitores e componentes',
+  }),
 });
 ```
 
-Se mandar o mesmo `name` e o mesmo `icon` que já estão no banco, a API responde `200` **sem executar o UPDATE** — otimização para evitar gravação à toa.
+O `PUT` substitui a categoria inteira: se a `description` não vier no body, ela fica `null`. Para manter a descrição atual, mande ela de novo.
 
-O `slug` é recalculado só quando o `name` muda; trocar só o `icon` mantém o slug.
+Se mandar o mesmo `name`, `icon` e `description` que já estão no banco, a API responde `200` **sem executar o UPDATE** — otimização para evitar gravação à toa.
+
+O `slug` é recalculado só quando o `name` muda; trocar só o `icon` ou a `description` mantém o slug.
 
 ### Deletar
 
@@ -908,12 +927,12 @@ curl $API/api/categories/slug/eletronicos
 # Criar
 curl -X POST $API/api/categories \
   -H 'Content-Type: application/json' \
-  -d '{"name":"Instrumentos Musicais","icon":"bi-music-note-beamed"}'
+  -d '{"name":"Instrumentos Musicais","icon":"bi-music-note-beamed","description":"Violões, teclados e acessórios"}'
 
 # Atualizar
 curl -X PUT $API/api/categories/{id} \
   -H 'Content-Type: application/json' \
-  -d '{"name":"Informática","icon":"bi-laptop"}'
+  -d '{"name":"Informática","icon":"bi-laptop","description":"Notebooks, monitores e componentes"}'
 
 # Deletar
 curl -X DELETE $API/api/categories/{id}

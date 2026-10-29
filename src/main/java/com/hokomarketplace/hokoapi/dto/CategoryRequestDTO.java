@@ -17,5 +17,8 @@ public record CategoryRequestDTO(
         @NotBlank(message = "Icon is required")
         @Size(max = 50)
         @Pattern(regexp = "^bi-[a-z0-9-]+$", message = "Icon must be a Bootstrap Icons class, e.g. bi-phone")
-        String icon
+        String icon,
+
+        @Size(max = 160, message = "Description must be at most 160 characters")
+        String description
 ) implements Serializable { }

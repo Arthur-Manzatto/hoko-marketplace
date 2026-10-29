@@ -28,7 +28,7 @@ async function carregarPagina(){
 
                 <div class="categoria-header-info">
                     <h1 class="categoria-header-titulo" id="categoriaName">${page.name}</h1>
-                    <p class="categoria-header-desc" id="categoriaDescription">Smartphones, notebooks, fones e muitos mais</p>
+                    <p class="categoria-header-desc" id="categoriaDescription">${page.description ?? ""}</p>
                    
                 </div>
 

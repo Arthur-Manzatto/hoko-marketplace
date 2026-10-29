@@ -30,6 +30,9 @@ public class Category implements Serializable {
     @Column(nullable = false, length = 50)
     private String icon;
 
+    @Column(length = 160)
+    private String description;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -67,6 +70,14 @@ public class Category implements Serializable {
 
     public void setIcon(String icon) {
         this.icon = icon;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public Instant getCreatedAt() {
