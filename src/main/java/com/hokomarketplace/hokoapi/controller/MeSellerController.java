@@ -1,58 +1,59 @@
 package com.hokomarketplace.hokoapi.controller;
 
+import com.hokomarketplace.hokoapi.config.CurrentUser;
 import com.hokomarketplace.hokoapi.dto.SellerRequestDTO;
 import com.hokomarketplace.hokoapi.dto.SellerResponseDTO;
 import com.hokomarketplace.hokoapi.entity.Seller;
 import com.hokomarketplace.hokoapi.service.SellerService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
-import java.util.UUID;
 
+/** Loja do usuário logado (virar vendedor, editar, fechar). */
 @RestController
-@RequestMapping("/api/users/{userId}/seller")
-public class SellerUserController {
+@RequestMapping("/api/me/seller")
+public class MeSellerController {
 
     private final SellerService service;
 
-    public SellerUserController(SellerService service) {
+    public MeSellerController(SellerService service) {
         this.service = service;
     }
 
     @GetMapping
-    public ResponseEntity<SellerResponseDTO> findByUserId(
-            @PathVariable UUID userId,
-            @RequestParam(required = false, defaultValue = "false") boolean includeDeleted) {
-
-        Seller obj = service.getByUserId(userId, includeDeleted);
+    public ResponseEntity<SellerResponseDTO> get(@AuthenticationPrincipal Jwt jwt) {
+        Seller obj = service.getByUserId(CurrentUser.id(jwt), false);
         return ResponseEntity.ok(new SellerResponseDTO(obj));
     }
 
     @PostMapping
     public ResponseEntity<SellerResponseDTO> insert(
-            @PathVariable UUID userId,
+            @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody SellerRequestDTO dto) {
 
-        Seller obj = service.insert(userId, dto);
-        URI uri = ServletUriComponentsBuilder.fromCurrentRequest().buildAndExpand(obj.getId()).toUri();
+        Seller obj = service.insert(CurrentUser.id(jwt), dto);
+        URI uri = ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/api/sellers/{id}").buildAndExpand(obj.getId()).toUri();
         return ResponseEntity.created(uri).body(new SellerResponseDTO(obj));
     }
 
     @PutMapping
     public ResponseEntity<SellerResponseDTO> update(
-            @PathVariable UUID userId,
+            @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody SellerRequestDTO dto) {
 
-        Seller obj = service.update(userId, dto);
+        Seller obj = service.update(CurrentUser.id(jwt), dto);
         return ResponseEntity.ok(new SellerResponseDTO(obj));
     }
 
     @DeleteMapping
-    public ResponseEntity<Void> delete(@PathVariable UUID userId) {
-        service.delete(userId);
+    public ResponseEntity<Void> delete(@AuthenticationPrincipal Jwt jwt) {
+        service.delete(CurrentUser.id(jwt));
         return ResponseEntity.noContent().build();
     }
 }

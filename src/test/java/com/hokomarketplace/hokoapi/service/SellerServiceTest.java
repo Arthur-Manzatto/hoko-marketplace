@@ -7,10 +7,11 @@ import com.hokomarketplace.hokoapi.repository.SellerRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
@@ -63,6 +64,38 @@ class SellerServiceTest {
         assertEquals("98765432100", updated.getDocument());
         assertEquals("loja-boa", updated.getSlug());
         verify(repository, never()).findBySlug(anyString());
+    }
+
+    @Test
+    void insertReopensDeletedStoreInsteadOfCreatingAnother() {
+        when(userService.get(userId, false)).thenReturn(new User());
+        UUID oldId = UUID.randomUUID();
+        Seller deleted = seller(oldId, "Loja Velha", "11111111111");
+        deleted.setSlug("loja-velha");
+        deleted.setDeletedAt(Instant.now());
+        when(repository.findByUserId(userId)).thenReturn(Optional.of(deleted));
+
+        Seller reopened = service.insert(userId, new SellerRequestDTO("Loja Nova", "12345678901"));
+
+        assertSame(deleted, reopened);
+        assertEquals(oldId, reopened.getId());
+        assertNull(reopened.getDeletedAt());
+        assertEquals("Loja Nova", reopened.getStoreName());
+        assertEquals("loja-nova", reopened.getSlug());
+        assertEquals("12345678901", reopened.getDocument());
+    }
+
+    @Test
+    void insertWithActiveStoreCreatesNewEntitySoDatabaseRejectsIt() {
+        when(userService.get(userId, false)).thenReturn(new User());
+        Seller active = seller(UUID.randomUUID(), "Loja Ativa", "11111111111");
+        when(repository.findByUserId(userId)).thenReturn(Optional.of(active));
+
+        Seller created = service.insert(userId, new SellerRequestDTO("Outra Loja", "12345678901"));
+
+        // não reaproveita a loja ativa: vai como insert novo e o UNIQUE de user_id dá 409
+        assertNotSame(active, created);
+        assertNull(created.getId());
     }
 
     private static Seller seller(UUID id, String name, String document) {

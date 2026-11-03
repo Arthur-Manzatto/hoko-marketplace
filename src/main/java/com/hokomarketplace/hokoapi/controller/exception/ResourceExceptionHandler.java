@@ -13,12 +13,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.Instant;
 import java.util.Map;
@@ -169,6 +171,39 @@ public class ResourceExceptionHandler {
                 status.value(),
                 "Bad request",
                 "Malformed JSON request body",
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(status).body(error);
+    }
+
+    /** Rota ou arquivo estático inexistente: 404 (sem isso caía no genérico e virava 500). */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<StandardError> noResource(
+            NoResourceFoundException e,
+            HttpServletRequest request
+    ) {
+        HttpStatus status = HttpStatus.NOT_FOUND;
+        StandardError error = new StandardError(
+                Instant.now(),
+                status.value(),
+                "Not found",
+                "Resource not found",
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(status).body(error);
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<StandardError> methodNotAllowed(
+            HttpRequestMethodNotSupportedException e,
+            HttpServletRequest request
+    ) {
+        HttpStatus status = HttpStatus.METHOD_NOT_ALLOWED;
+        StandardError error = new StandardError(
+                Instant.now(),
+                status.value(),
+                "Method not allowed",
+                "Method " + e.getMethod() + " is not supported for this route",
                 request.getRequestURI()
         );
         return ResponseEntity.status(status).body(error);

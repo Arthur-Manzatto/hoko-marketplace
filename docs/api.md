@@ -13,7 +13,7 @@ Produção:   https://hoko-api.onrender.com
 
 **Content-Type:** toda requisição com body usa `application/json`.
 
-**Autenticação:** nenhuma no momento. Todos os endpoints são públicos enquanto a API está em desenvolvimento; o Spring Security entra quando os módulos estiverem prontos.
+**Autenticação:** token do Supabase Auth no header `Authorization: Bearer <token>`. A vitrine (categorias, lojas e produtos) é pública; conta, loja e produtos do vendedor exigem login; administração exige admin. Detalhes na seção 2.
 
 **Banco:** a API usa o Postgres do Supabase. Não existe banco local: rodando na sua máquina, a API também conecta no Supabase.
 
@@ -27,7 +27,52 @@ Não existe `POST /api/users`. O usuário nasce no **cadastro do Supabase Auth**
 - Telefone inválido ou já usado por outra conta é salvo como `null`, e o cadastro não falha
 - O e-mail é sempre o do Auth. Para trocar, use `supabase.auth.updateUser({ email })`; o banco atualiza sozinho
 
-Para pegar o `userId` no front: `(await supabase.auth.getUser()).data.user.id`.
+A API não recebe `userId` na URL: quem é o usuário vem do token (rotas `/api/me`).
+
+### Autenticação
+
+Toda rota que não é vitrine pública exige o token da sessão do Supabase:
+
+```
+Authorization: Bearer <access_token>
+```
+
+| Quem | Rotas |
+|---|---|
+| **Qualquer um** (sem token) | `GET /api/categories/**`, `GET /api/sellers/**`, `GET /api/products/**` |
+| **Logado** | `/api/me/**` (perfil, loja, produtos da loja, endereços) |
+| **Admin** | criar/editar/apagar categorias, `/api/users/**` |
+
+O `apiFetch` do `js/api.js` já manda o token. Nos exemplos deste documento, `authFetch` é um `fetch` com o token:
+
+```js
+import { supabase } from "./supabase-client.js";
+
+async function authFetch(url, options = {}) {
+  const { data } = await supabase.auth.getSession();
+  return fetch(url, {
+    ...options,
+    headers: { ...options.headers, Authorization: `Bearer ${data.session?.access_token}` },
+  });
+}
+```
+
+⚠️ **Rotas públicas: não mande token.** Um token vencido ou inválido faz a API responder `401` até numa rota pública. Para a vitrine use `getJson`/`fetch` sem header (como o front já faz); `apiFetch`/`authFetch` só para `/api/me/**` e admin.
+
+**Erros de autenticação** vêm no formato padrão (seção 5):
+
+| Status | `message` | Quando |
+|---|---|---|
+| `401` | `Authentication required` | Sem token, token vencido ou inválido. No front: mandar para o login |
+| `403` | `Access denied` | Logado, mas sem permissão (ex.: não-admin criando categoria) |
+
+**Admin** é quem tem `app_metadata.role = "admin"` no Supabase Auth. Só dá para definir pelo SQL Editor ou pela service key, nunca pelo site:
+
+```sql
+UPDATE auth.users SET raw_app_meta_data = raw_app_meta_data || '{"role":"admin"}' WHERE email = '...';
+```
+
+Vale a partir do próximo login (o token antigo não tem a role).
 
 ### Cold start
 
@@ -40,7 +85,7 @@ Não é bug da API. Se aparecer um loading page ou um request pendurado, é isso
 - **IDs** são UUID no formato `550e8400-e29b-41d4-a716-446655440000`, nunca inteiros
 - **Datas** em ISO 8601 com timezone UTC: `2026-10-05T16:53:12Z`
 - **Não há envelope** — a resposta é o objeto direto, não `{ "data": ... }`
-- **Não há header `Authorization`** para mandar
+- **Header `Authorization`** só nas rotas de logado e admin (seção 2)
 
 ## 4. Paginação
 
@@ -76,7 +121,10 @@ A lista de itens está em `content`.
 | Status | Quando acontece |
 |---|---|
 | `400` | UUID malformado na URL, JSON inválido, parâmetro de filtro inválido (`sort` com campo inexistente, `minPrice > maxPrice`) |
-| `404` | Registro não encontrado |
+| `401` | Sem token, ou token vencido/inválido (seção 2) |
+| `403` | Logado, mas sem permissão para a rota (seção 2) |
+| `404` | Registro, rota ou arquivo não encontrado |
+| `405` | Método HTTP não aceito na rota (ex.: `DELETE` onde só existe `GET`) |
 | `409` | Conflito com o banco: valor duplicado (nome de categoria, documento de loja, telefone…) ou delete barrado por referência (categoria com produto) |
 | `422` | Falha de validação de campo (tamanho, formato, obrigatório) |
 | `500` | Erro inesperado |
@@ -124,7 +172,7 @@ body.errors?.forEach(e => {
 
 ## 6. Categorias
 
-Funciona em local e produção.
+Listar e buscar são **públicos**. Criar, atualizar e deletar exigem **admin** (`401` sem token, `403` para quem não é admin).
 
 Já existem 18 categorias no banco, cada uma com ícone e descrição: `eletronicos`, `perifericos`, `roupas`, `casa-decoracao`, `games`, `livros`, `esportes`, `brinquedos`, `beleza-perfumaria`, `saude`, `ferramentas`, `automotivo`, `mercado`, `jardim`, `joias-acessorios`, `papelaria`, `eletrodomesticos`, `bebes`.
 
@@ -235,7 +283,7 @@ Body — `name` e `icon` obrigatórios, `description` opcional:
 Resposta: **`201`** com o objeto criado e header `Location` com a URL do recurso novo.
 
 ```js
-const res = await fetch(`${API}/api/categories`, {
+const res = await authFetch(`${API}/api/categories`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
@@ -280,7 +328,7 @@ PUT /api/categories/{id}
 Mesma validação e mesmo body do `POST`. Resposta **`200`** com a categoria atualizada.
 
 ```js
-const res = await fetch(`${API}/api/categories/${id}`, {
+const res = await authFetch(`${API}/api/categories/${id}`, {
   method: 'PUT',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
@@ -306,7 +354,7 @@ DELETE /api/categories/{id}
 Resposta: **`204` sem body**.
 
 ```js
-const res = await fetch(`${API}/api/categories/${id}`, { method: 'DELETE' });
+const res = await authFetch(`${API}/api/categories/${id}`, { method: 'DELETE' });
 
 if (res.status === 204) {
   // deletado
@@ -319,7 +367,7 @@ if (res.status === 204) {
 
 ## 7. Endereços
 
-O `userId` precisa ser de um usuário que já se cadastrou (ver seção 2).
+Todas as rotas exigem **login** (seção 2) e mexem só nos endereços do dono do token. Endereço de outra pessoa responde `404`.
 
 ### Modelo
 
@@ -375,7 +423,7 @@ Campos opcionais omitidos, ou enviados como `null`, são salvos como `null`.
 ### Listar
 
 ```
-GET /api/users/{userId}/addresses
+GET /api/me/addresses
 ```
 
 | Query param | Tipo | Padrão | Descrição |
@@ -387,12 +435,12 @@ GET /api/users/{userId}/addresses
 
 ```js
 // Apenas endereços ativos
-const res = await fetch(`${API}/api/users/${userId}/addresses?size=10`);
+const res = await authFetch(`${API}/api/me/addresses?size=10`);
 const page = await res.json();
 page.content; // array de endereços (deletedAt = null)
 
 // Incluir deletados
-const res2 = await fetch(`${API}/api/users/${userId}/addresses?includeDeleted=true&size=10`);
+const res2 = await authFetch(`${API}/api/me/addresses?includeDeleted=true&size=10`);
 const page2 = await res2.json();
 page2.content; // todos os endereços (incluindo deletedAt != null)
 ```
@@ -400,7 +448,7 @@ page2.content; // todos os endereços (incluindo deletedAt != null)
 ### Buscar por id
 
 ```
-GET /api/users/{userId}/addresses/{id}
+GET /api/me/addresses/{id}
 ```
 
 | Query param | Tipo | Padrão | Descrição |
@@ -411,22 +459,22 @@ Retorna `404` se o endereço não existir **ou** não pertencer a esse usuário 
 
 ```js
 // Buscar endereço ativo
-const res = await fetch(`${API}/api/users/${userId}/addresses/${id}`);
+const res = await authFetch(`${API}/api/me/addresses/${id}`);
 
 // Buscar endereço mesmo que deletado
-const res2 = await fetch(`${API}/api/users/${userId}/addresses/${id}?includeDeleted=true`);
+const res2 = await authFetch(`${API}/api/me/addresses/${id}?includeDeleted=true`);
 ```
 
 ### Criar
 
 ```
-POST /api/users/{userId}/addresses
+POST /api/me/addresses
 ```
 
 Resposta: **`201`** com o endereço criado e header `Location`.
 
 ```js
-const res = await fetch(`${API}/api/users/${userId}/addresses`, {
+const res = await authFetch(`${API}/api/me/addresses`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
@@ -445,7 +493,7 @@ const res = await fetch(`${API}/api/users/${userId}/addresses`, {
 ### Atualizar
 
 ```
-PUT /api/users/{userId}/addresses/{id}
+PUT /api/me/addresses/{id}
 ```
 
 Mesmo body da criação. Resposta **`200`**.
@@ -455,14 +503,14 @@ Assim como em categorias, se o conteúdo normalizado for idêntico ao que já es
 ### Marcar como principal
 
 ```
-PATCH /api/users/{userId}/addresses/{id}/default
+PATCH /api/me/addresses/{id}/default
 ```
 
 Sem body. Desmarca todos os outros endereços do usuário e marca esse. Resposta **`200`** com o endereço atualizado.
 
 ```js
-const res = await fetch(
-  `${API}/api/users/${userId}/addresses/${id}/default`,
+const res = await authFetch(
+  `${API}/api/me/addresses/${id}/default`,
   { method: 'PATCH' }
 );
 
@@ -475,7 +523,7 @@ Padrão do frontend: usar `PATCH` só quando o usuário marcar, nunca no `PUT`. 
 ### Deletar
 
 ```
-DELETE /api/users/{userId}/addresses/{id}
+DELETE /api/me/addresses/{id}
 ```
 
 Resposta: **`204` sem body**. Se era o endereço principal, ele deixa de ser (o usuário fica sem principal até marcar outro).
@@ -484,7 +532,38 @@ Resposta: **`204` sem body**. Se era o endereço principal, ele deixa de ser (o 
 
 ## 8. Usuários
 
-Endpoints de gestão de usuários com suporte a soft-delete. Não há criação por aqui: ver seção 2.
+### Minha conta: `/api/me`
+
+Para o usuário logado (qualquer um):
+
+```
+GET /api/me    → perfil + loja + se é admin
+PUT /api/me    → edita nome e telefone (mesmo body de "Body de edição" abaixo)
+```
+
+```json
+{
+  "id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+  "name": "João Silva",
+  "email": "joao@example.com",
+  "phone": "11987654321",
+  "createdAt": "2026-10-05T16:53:12Z",
+  "admin": false,
+  "seller": null
+}
+```
+
+`seller` é a loja do usuário (modelo "dono da loja" da seção 9) ou `null` se ainda não é vendedor. Com uma chamada o front sabe se mostra "Minha loja" ou "Vender".
+
+```js
+const res = await authFetch(`${API}/api/me`);
+if (res.status === 401) location.href = "/login.html";
+const me = await res.json();
+```
+
+### Gestão de usuários (admin)
+
+As rotas abaixo (`/api/users/**`) são **só para admin**. Não há criação por aqui: ver seção 2.
 
 ### Modelo
 
@@ -534,16 +613,16 @@ GET /api/users
 
 ```js
 // Apenas usuários ativos
-const res = await fetch(`${API}/api/users?size=10`);
+const res = await authFetch(`${API}/api/users?size=10`);
 const page = await res.json();
 page.content; // array de usuários (deletedAt = null)
 
 // Buscar por nome
-const res2 = await fetch(`${API}/api/users?search=joão&size=10`);
+const res2 = await authFetch(`${API}/api/users?search=joão&size=10`);
 const page2 = await res2.json();
 
 // Incluir deletados
-const res3 = await fetch(`${API}/api/users?includeDeleted=true&size=10`);
+const res3 = await authFetch(`${API}/api/users?includeDeleted=true&size=10`);
 const page3 = await res3.json();
 ```
 
@@ -559,11 +638,11 @@ GET /api/users/{id}
 
 ```js
 // Buscar usuário ativo
-const res = await fetch(`${API}/api/users/${id}`);
+const res = await authFetch(`${API}/api/users/${id}`);
 const usuario = await res.json();
 
 // Buscar mesmo que deletado
-const res2 = await fetch(`${API}/api/users/${id}?includeDeleted=true`);
+const res2 = await authFetch(`${API}/api/users/${id}?includeDeleted=true`);
 const usuarioDeletado = await res2.json();
 ```
 
@@ -578,7 +657,7 @@ GET /api/users/email/{email}
 | `includeDeleted` | boolean | `false` | Incluir se deletado (soft-delete) |
 
 ```js
-const res = await fetch(`${API}/api/users/email/joao@example.com`);
+const res = await authFetch(`${API}/api/users/email/joao@example.com`);
 const usuario = await res.json();
 ```
 
@@ -591,7 +670,7 @@ PUT /api/users/{id}
 Resposta **`200`** com o usuário atualizado. `409` se o telefone já pertence a outro usuário.
 
 ```js
-const res = await fetch(`${API}/api/users/${id}`, {
+const res = await authFetch(`${API}/api/users/${id}`, {
   method: 'PUT',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
@@ -612,7 +691,7 @@ DELETE /api/users/{id}
 Resposta: **`204` sem body**. O usuário é marcado como deletado (soft-delete), e o banco marca junto os endereços e a loja dele.
 
 ```js
-const res = await fetch(`${API}/api/users/${id}`, { method: 'DELETE' });
+const res = await authFetch(`${API}/api/users/${id}`, { method: 'DELETE' });
 
 if (res.status === 204) {
   // deletado
@@ -626,7 +705,7 @@ if (res.status === 204) {
 Cada usuário pode ter **uma** loja. Há duas visões:
 
 - **Vitrine (pública):** `/api/sellers`, sem o documento (CPF/CNPJ)
-- **Dono da loja:** `/api/users/{userId}/seller`, com o documento
+- **Dono da loja:** `/api/me/seller`, com o documento (exige login)
 
 ### Modelo — vitrine
 
@@ -689,21 +768,23 @@ const loja = await res.json();
 ### Dono da loja
 
 ```
-GET    /api/users/{userId}/seller   → 200 | 404 se o usuário não tem loja
-POST   /api/users/{userId}/seller   → 201 | 409 se já tem loja ou documento em uso
-PUT    /api/users/{userId}/seller   → 200 | 409 documento em uso
-DELETE /api/users/{userId}/seller   → 204 (soft-delete; os produtos da loja também são marcados como deletados)
+GET    /api/me/seller   → 200 | 404 se o usuário não tem loja
+POST   /api/me/seller   → 201 | 409 se já tem loja ativa ou documento em uso
+PUT    /api/me/seller   → 200 | 409 documento em uso
+DELETE /api/me/seller   → 204 (soft-delete; os produtos da loja também são marcados como deletados)
 ```
 
 ```js
-const res = await fetch(`${API}/api/users/${userId}/seller`, {
+const res = await authFetch(`${API}/api/me/seller`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({ storeName: 'Hoko Store', document: '12345678901' }),
 });
 ```
 
-Depois de um soft-delete, o mesmo documento pode ser usado de novo. O mesmo usuário, porém, não abre outra loja (é uma por usuário, contando as deletadas).
+É uma loja por usuário. Quem apagou a loja e faz `POST` de novo tem a **mesma loja reativada** com os dados novos (mesmo `id`, nome/documento/slug atualizados); os produtos antigos continuam deletados. Depois de um soft-delete, o documento pode ser usado por outra loja.
+
+Na vitrine, `includeDeleted=true` só tem efeito para admin; para os outros é ignorado.
 
 ---
 
@@ -712,7 +793,7 @@ Depois de um soft-delete, o mesmo documento pode ser usado de novo. O mesmo usu�
 Produtos pertencem a uma loja e têm até **8 fotos**. Há duas visões:
 
 - **Vitrine (pública):** `/api/products`
-- **Dono da loja:** `/api/users/{userId}/seller/products`
+- **Dono da loja:** `/api/me/seller/products` (exige login e loja)
 
 O usuário precisa ter uma loja (seção 9) para cadastrar produtos.
 
@@ -840,15 +921,15 @@ produto.imageUrls; // galeria
 ### Dono da loja
 
 ```
-GET    /api/users/{userId}/seller/products              ?includeDeleted=&page=&size=&sort=   → 200 (modelo de lista)
-POST   /api/users/{userId}/seller/products                                                    → 201 + Location
-PUT    /api/users/{userId}/seller/products/{id}                                               → 200
-PATCH  /api/users/{userId}/seller/products/{id}/stock    body { "quantity": 5 }               → 200
-DELETE /api/users/{userId}/seller/products/{id}                                               → 204 (soft-delete)
+GET    /api/me/seller/products              ?includeDeleted=&page=&size=&sort=   → 200 (modelo de lista)
+POST   /api/me/seller/products                                                    → 201 + Location (/api/products/{id})
+PUT    /api/me/seller/products/{id}                                               → 200
+PATCH  /api/me/seller/products/{id}/stock    body { "quantity": 5 }               → 200
+DELETE /api/me/seller/products/{id}                                               → 204 (soft-delete)
 ```
 
 ```js
-const res = await fetch(`${API}/api/users/${userId}/seller/products`, {
+const res = await authFetch(`${API}/api/me/seller/products`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
@@ -924,18 +1005,23 @@ curl "$API/api/categories?search=eletronicos"
 # Por slug
 curl $API/api/categories/slug/eletronicos
 
-# Criar
+# Criar (admin: TOKEN = access_token de uma conta admin)
 curl -X POST $API/api/categories \
+  -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' \
   -d '{"name":"Instrumentos Musicais","icon":"bi-music-note-beamed","description":"Violões, teclados e acessórios"}'
 
-# Atualizar
+# Atualizar (admin)
 curl -X PUT $API/api/categories/{id} \
+  -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' \
   -d '{"name":"Informática","icon":"bi-laptop","description":"Notebooks, monitores e componentes"}'
 
-# Deletar
-curl -X DELETE $API/api/categories/{id}
+# Deletar (admin)
+curl -X DELETE $API/api/categories/{id} -H "Authorization: Bearer $TOKEN"
+
+# Minha conta (logado)
+curl $API/api/me -H "Authorization: Bearer $TOKEN"
 ```
 
 Rodando a API na sua máquina (conecta no mesmo Supabase, mas sem cold start):
@@ -950,5 +1036,4 @@ API=http://localhost:8080
 
 | Item | Impacto |
 |---|---|
-| Sem autenticação | Endpoints abertos, inclusive `includeDeleted`, edição e exclusão de qualquer usuário. Só para desenvolvimento |
 | Cold start de ~1 min a cada 15 min | Esperar no primeiro request |

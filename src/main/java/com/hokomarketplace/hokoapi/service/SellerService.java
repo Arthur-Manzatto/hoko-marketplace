@@ -2,6 +2,7 @@ package com.hokomarketplace.hokoapi.service;
 
 import com.hokomarketplace.hokoapi.dto.SellerRequestDTO;
 import com.hokomarketplace.hokoapi.entity.Seller;
+import com.hokomarketplace.hokoapi.entity.User;
 import com.hokomarketplace.hokoapi.repository.SellerRepository;
 import com.hokomarketplace.hokoapi.service.exception.ResourceNotFoundException;
 import com.hokomarketplace.hokoapi.util.SearchUtils;
@@ -69,14 +70,25 @@ public class SellerService {
                 .orElseThrow(() -> new ResourceNotFoundException("Seller not found with slug: " + slug));
     }
 
+    /**
+     * Abre a loja do usuário. Como é uma loja por usuário (contando as apagadas),
+     * quem fechou a loja e quer vender de novo tem a loja antiga reativada com os dados novos.
+     * Loja ativa existente cai no UNIQUE (sellers_user_id_key) e vira 409.
+     */
     @Transactional
     public Seller insert(UUID userId, SellerRequestDTO dto) {
-        Seller entity = new Seller();
-        entity.setUser(userService.get(userId, false));
+        Seller entity = repository.findByUserId(userId)
+                .filter(existing -> existing.getDeletedAt() != null)
+                .orElseGet(Seller::new);
+        User user = userService.get(userId, false); // 404 se o usuário não existe ou foi apagado
+        if (entity.getId() == null) {
+            entity.setUser(user);
+        }
         String storeName = dto.storeName().trim();
         entity.setStoreName(storeName);
-        entity.setSlug(slugFor(storeName, null));
+        entity.setSlug(slugFor(storeName, entity.getId()));
         entity.setDocument(dto.document().trim());
+        entity.setDeletedAt(null);
         return repository.saveAndFlush(entity);
     }
 
