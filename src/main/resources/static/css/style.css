@@ -7,6 +7,17 @@ body{
     padding-top: 70px;
 }
 
+.navbar .btn:focus,
+.navbar .btn:active,
+.navbar .btn:active:focus {
+    box-shadow: none;
+}
+
+/* Remove o contorno ao clicar com o mouse */
+.navbar button:focus:not(:focus-visible),
+.navbar a:focus:not(:focus-visible) {
+    outline: none;
+}
 .navbar {
     background-color: #F8FAFC;
 }
@@ -732,4 +743,345 @@ body{
 /* "Entrar" invisível (mas ocupando espaço) até o session.js saber se há login */
 #loginLink[data-auth="pending"] {
     visibility: hidden;
+}
+
+/*  PÁGINA DO PRODUTO  */
+
+.produto-pagina {
+    padding-top: 20px;
+    padding-bottom: 40px;
+    color: #0f172a;
+}
+
+.produto-caminho {
+    margin-bottom: 20px;
+    font-size: 12px;
+    color: #64748b;
+}
+
+.produto-caminho > * {
+    margin-right: 9px;
+}
+
+.produto-caminho a {
+    color: #013095;
+    text-decoration: none;
+}
+
+.produto-caminho [aria-current] {
+    color: #0f172a;
+}
+
+.produto-detalhe {
+    padding: 30px;
+    background-color: #fff;
+    border: 1px solid #edf0f5;
+    border-radius: 24px;
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+}
+
+/* Imagem */
+
+.produto-foto {
+    position: relative;
+    min-height: 560px;
+    overflow: hidden;
+    background-color: #f8fafc;
+    border-radius: 18px;
+}
+
+.produto-foto-img {
+    display: block;
+    width: 100%;
+    max-height: 650px;
+    object-fit: contain;
+}
+
+.produto-foto-placeholder {
+    color: #94a3b8;
+    font-size: 14px;
+}
+
+.produto-foto-placeholder i {
+    margin-bottom: 12px;
+    color: #cbd5e1;
+    font-size: 54px;
+}
+
+.produto-favorito {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    background-color: #fff;
+    border: 1px solid #edf0f5;
+    border-radius: 50%;
+    color: #64748b;
+    font-size: 21px;
+    box-shadow: 0 2px 4px rgba(15, 23, 42, 0.06);
+}
+
+.produto-favorito[aria-pressed="true"] {
+    color: #ef4444;
+}
+
+/* Informações e preço */
+
+.produto-resumo {
+    min-width: 0;
+}
+
+.produto-condicao {
+    margin-bottom: 12px;
+    color: #64748b;
+    font-size: 12px;
+}
+
+.produto-resumo h1 {
+    margin-bottom: 0;
+    color: #0f172a;
+    font-size: 30px;
+    font-weight: 800;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+}
+
+.produto-valor {
+    margin-top: 32px;
+    margin-bottom: 24px;
+}
+
+.produto-preco-atual {
+    margin-bottom: 0;
+    font-size: 36px;
+    font-weight: 400;
+    line-height: 1.2;
+}
+
+.produto-parcelas {
+    margin-top: 6px;
+    margin-bottom: 0;
+    color: #008a42;
+    font-size: 14px;
+}
+
+/* Entrega */
+
+.produto-entrega {
+    padding-top: 24px;
+    padding-bottom: 20px;
+    border-top: 1px solid #edf0f5;
+    border-bottom: 1px solid #edf0f5;
+}
+
+.produto-frete {
+    margin-bottom: 16px;
+}
+
+.produto-frete > i {
+    margin-right: 14px;
+    color: #008a42;
+    font-size: 20px;
+}
+
+.produto-frete p {
+    margin-bottom: 2px;
+    color: #008a42;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.produto-frete span {
+    color: #64748b;
+    font-size: 13px;
+}
+
+.produto-cep {
+    max-width: 385px;
+}
+
+.produto-cep .form-control {
+    flex: 1;
+    min-width: 0;
+    height: 42px;
+    border-radius: 12px;
+    font-size: 13px;
+}
+
+.produto-calcular {
+    margin-left: 8px;
+    padding: 10px 17px;
+    background-color: #fff;
+    border: 1px solid #013095;
+    border-radius: 12px;
+    color: #013095;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.produto-calcular:hover {
+    background-color: #eaf1ff;
+    color: #013095;
+}
+
+/* Estoque e quantidade */
+
+.produto-disponibilidade {
+    padding-top: 24px;
+    padding-bottom: 12px;
+}
+
+.produto-disponibilidade > div {
+    margin-bottom: 12px;
+}
+
+.produto-estoque {
+    margin-bottom: 2px;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.produto-unidades {
+    margin-bottom: 0;
+    color: #64748b;
+    font-size: 12px;
+}
+
+.produto-quantidade label {
+    margin-right: 8px;
+    margin-bottom: 0;
+    color: #64748b;
+    font-size: 13px;
+}
+
+.produto-quantidade .custom-select {
+    width: 68px;
+    border-radius: 9px;
+    color: #0f172a;
+}
+
+/* Botões de compra */
+
+.produto-acoes {
+    margin-right: -6px;
+    margin-left: -6px;
+}
+
+.produto-acoes > div {
+    padding-right: 6px;
+    padding-left: 6px;
+}
+
+.produto-botao {
+    min-height: 48px;
+    padding: 12px 8px;
+    border: none;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.produto-carrinho {
+    background-color: #dbeafe;
+    color: #013095;
+}
+
+.produto-carrinho:hover {
+    background-color: #c7ddfb;
+    color: #013095;
+}
+
+.produto-comprar {
+    background-color: #fe6901;
+    color: #fff;
+}
+
+.produto-comprar:hover {
+    background-color: #d96700;
+    color: #fff;
+}
+
+/* Loja */
+
+.produto-loja {
+    margin-top: 24px;
+    padding: 18px 16px;
+    border: 1px solid #edf0f5;
+    border-radius: 16px;
+}
+
+.produto-loja-icone {
+    width: 44px;
+    height: 44px;
+    margin-right: 12px;
+    background-color: #013095;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 21px;
+}
+
+.produto-loja-nome {
+    font-size: 15px;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.produto-retorno {
+    margin-top: 10px;
+    margin-bottom: 0;
+    color: #64748b;
+    font-size: 13px;
+}
+
+.produto-retorno:empty {
+    display: none;
+}
+
+.produto-pagina button:focus-visible,
+.produto-pagina input:focus-visible,
+.produto-pagina select:focus-visible,
+.produto-pagina a:focus-visible {
+    outline: 2px solid #013095;
+    outline-offset: 3px;
+}
+
+/* Responsividade: mesmos pontos de quebra do Bootstrap 4 */
+
+@media (max-width: 991.98px) {
+    .produto-detalhe {
+        padding: 22px;
+    }
+
+    .produto-foto {
+        min-height: 420px;
+    }
+
+    .produto-resumo h1 {
+        font-size: 26px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .produto-detalhe {
+        padding: 16px;
+        border-radius: 18px;
+    }
+
+    .produto-foto {
+        min-height: 280px;
+    }
+
+    .produto-valor {
+        margin-top: 24px;
+    }
+
+    .produto-preco-atual {
+        font-size: 32px;
+    }
+
+    .produto-resumo h1 {
+        font-size: 24px;
+    }
 }
