@@ -39,7 +39,7 @@ async function carregarCategorias() {
 
 // ------------------------------------------------------------------ produtos
 
-function productImage(prod) {
+export function productImage(prod) {
     const img = prod.coverImageUrl
         ? `<img src="${e(prod.coverImageUrl)}" alt="${e(prod.name)}" class="product-img"
                 loading="lazy" decoding="async"
@@ -49,7 +49,7 @@ function productImage(prod) {
     return `<div class="img-placeholder" aria-hidden="true"><i class="bi bi-image"></i></div>${img}`;
 }
 
-function productCard(prod) {
+export function productCard(prod) {
     const oldPrice = Math.round(prod.price * 1.2 * 100) / 100;
     return `
         <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4">
