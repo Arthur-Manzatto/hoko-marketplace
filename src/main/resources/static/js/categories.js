@@ -3,7 +3,6 @@ import { escapeHtml as e, showContent, showError, showSkeleton, showState, forma
 import { productCard, productImage } from "./index.js";
 
 
-
 const cat_header = document.getElementById("category_header");
 const categoriaSlug = new URLSearchParams(window.location.search).get("slug");
 

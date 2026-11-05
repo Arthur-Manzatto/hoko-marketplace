@@ -52,7 +52,9 @@ export function productImage(prod) {
 export function productCard(prod) {
     const oldPrice = Math.round(prod.price * 1.2 * 100) / 100;
     return `
+    
         <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4">
+        <a href="produtos.html?slug=${e(prod.slug)}">
             <div class="product-card">
                 <div class="pimg-container">
                     ${productImage(prod)}
@@ -82,7 +84,9 @@ export function productCard(prod) {
                     </button>
                 </div>
             </div>
-        </div>`;
+            </a>
+        </div>
+    `;
 }
 
 async function carregarHighlights() {

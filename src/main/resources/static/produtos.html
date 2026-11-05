@@ -118,8 +118,8 @@
     <section class="container produto-pagina">
         <nav class="produto-caminho d-flex flex-wrap align-items-center" aria-label="Caminho de navegação">
             <a href="index.html">Início</a><span aria-hidden="true">/</span>
-            <span>Eletrônicos</span><span aria-hidden="true">/</span>
-            <span aria-current="page">Fone Bluetooth Hoko Sound</span>
+            <a href="#" id="product_cat_path"></a><span aria-hidden="true">/</span>
+            <span aria-current="page" id="product_name_path"></span>
         </nav>
 
         <div class="produto-detalhe" aria-labelledby="produto-titulo">
@@ -127,7 +127,7 @@
             <div class="col-12 col-lg-6 mb-4 mb-lg-0">
             <div class="produto-foto d-flex align-items-center justify-content-center h-100">
                 
-                <img class="produto-foto-img" src="#" alt="">
+                <img id="product_img" class="produto-foto-img" src="#" alt="">
                 
                 <div class="produto-foto-placeholder d-flex flex-column align-items-center">
                     <i class="bi bi-image" aria-hidden="true"></i>
@@ -141,11 +141,11 @@
             </div>
             <div class="produto-resumo col-12 col-lg-6">
                 <p class="produto-condicao">Novo</p>
-                <h1 id="produto-titulo">Fone Bluetooth Hoko Sound</h1>
+                <h1 id="product_title"></h1>
 
                 <div class="produto-valor">
-                    <p class="produto-preco-atual">R$ 249,90</p>
-                    <p class="produto-parcelas">em 12x de R$ 20,83 sem juros</p>
+                    <p class="produto-preco-atual" id="product_curprice"></p>
+                    <p class="produto-parcelas" id="product_installments"></p>
                 </div>
 
                 <section class="produto-entrega" aria-label="Entrega">
@@ -168,12 +168,12 @@
 
                 <div class="produto-disponibilidade d-flex flex-wrap align-items-center justify-content-between">
                     <div>
-                        <p class="produto-estoque">Estoque disponível</p>
-                        <p class="produto-unidades">10 unidades disponíveis</p>
+                        <p class="produto-estoque" id="product_stock">Estoque disponível</p>
+                        <p class="produto-unidades" id="product_units"></p>
                     </div>
                     <div class="produto-quantidade d-flex align-items-center">
                         <label for="produto-quantidade">Quantidade</label>
-                        <select class="custom-select" id="produto-quantidade" name="quantidade">
+                        <select class="custom-select" id="product_qty" name="quantidade">
                             <option>1</option><option>2</option><option>3</option>
                             <option>4</option><option>5</option><option>6</option>
                             <option>7</option><option>8</option><option>9</option><option>10</option>
@@ -194,7 +194,7 @@
 
                 <div class="produto-loja d-flex align-items-center">
                     <span class="produto-loja-icone d-inline-flex align-items-center justify-content-center flex-shrink-0"><i class="bi bi-shop" aria-hidden="true"></i></span>
-                    <span class="produto-loja-nome">TechStore Oficial</span>
+                    <span class="produto-loja-nome" id="product_store"></span>
                 </div>
             </div>
             </div>
@@ -232,6 +232,7 @@
     <script src="/js/sidebar.js"></script>
 
     <script type="module" src="/js/session.js"></script>
+    <script type="module" src="/js/product.js"></script>
 
 
 </body>
