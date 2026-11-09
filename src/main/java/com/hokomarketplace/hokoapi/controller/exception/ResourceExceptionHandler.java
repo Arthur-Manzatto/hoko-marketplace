@@ -1,5 +1,6 @@
 package com.hokomarketplace.hokoapi.controller.exception;
 
+import com.hokomarketplace.hokoapi.service.exception.BusinessException;
 import com.hokomarketplace.hokoapi.service.exception.ResourceNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolation;
@@ -60,8 +61,26 @@ public class ResourceExceptionHandler {
             Map.entry("products_slug_key", "A product with this slug already exists"),
             Map.entry("products_price_check", "Price must be zero or positive"),
             Map.entry("products_quantity_check", "Quantity must be zero or positive"),
-            Map.entry("product_images_url_https", "Image URL must be https")
+            Map.entry("product_images_url_https", "Image URL must be https"),
+            Map.entry("cart_items_user_product_key", "Product is already in the cart"),
+            Map.entry("cart_items_quantity_check", "Quantity must be greater than zero")
     );
+
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<StandardError> business(
+            BusinessException e,
+            HttpServletRequest request
+    ) {
+        HttpStatus status = HttpStatus.UNPROCESSABLE_CONTENT;
+        StandardError error = new StandardError(
+                Instant.now(),
+                status.value(),
+                "Business rule",
+                e.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(status).body(error);
+    }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<StandardError> dataIntegrityViolation(

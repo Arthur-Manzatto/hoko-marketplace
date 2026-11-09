@@ -2,6 +2,8 @@
 
 Documentação dos endpoints disponíveis para o frontend.
 
+> Como as telas puxam esses dados (skeleton, cards, estados de vazio e erro): ver o [guia do front](front.md).
+
 ## 1. Sobre a API
 
 **Base URL**
@@ -40,7 +42,7 @@ Authorization: Bearer <access_token>
 | Quem | Rotas |
 |---|---|
 | **Qualquer um** (sem token) | `GET /api/categories/**`, `GET /api/sellers/**`, `GET /api/products/**` |
-| **Logado** | `/api/me/**` (perfil, loja, produtos da loja, endereços) |
+| **Logado** | `/api/me/**` (perfil, loja, produtos da loja, endereços, carrinho) |
 | **Admin** | criar/editar/apagar categorias, `/api/users/**` |
 
 O `apiFetch` do `js/api.js` já manda o token. Nos exemplos deste documento, `authFetch` é um `fetch` com o token:
@@ -126,7 +128,7 @@ A lista de itens está em `content`.
 | `404` | Registro, rota ou arquivo não encontrado |
 | `405` | Método HTTP não aceito na rota (ex.: `DELETE` onde só existe `GET`) |
 | `409` | Conflito com o banco: valor duplicado (nome de categoria, documento de loja, telefone…) ou delete barrado por referência (categoria com produto) |
-| `422` | Falha de validação de campo (tamanho, formato, obrigatório) |
+| `422` | Falha de validação de campo (tamanho, formato, obrigatório) ou regra de negócio (`error: "Business rule"`, ex.: sem estoque) |
 | `500` | Erro inesperado |
 
 ### Formato padrão
@@ -991,7 +993,113 @@ Fluxo da tela de cadastro e edição:
 
 ---
 
-## 11. Como testar com curl
+## 11. Carrinho (`/api/me/cart`)
+
+Um carrinho por usuário. Todas as rotas exigem **login** (seção 2) e mexem só no carrinho do dono do token. Não precisa criar o carrinho: ele sempre existe, vazio é só sem itens.
+
+### Modelo
+
+Toda rota (menos o "esvaziar") devolve o **carrinho inteiro** já atualizado. O front só redesenha, sem precisar de um `GET` depois.
+
+```json
+{
+  "items": [
+    {
+      "id": "0c1d2e3f-4a5b-6c7d-8e9f-0a1b2c3d4e5f",
+      "productId": "94541e5c-8609-4e5c-be26-2770b2696f5d",
+      "name": "Fone Bluetooth HoKo Sound",
+      "slug": "fone-bluetooth-hoko-sound",
+      "coverImageUrl": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&q=80",
+      "sellerStoreName": "TechStore Oficial",
+      "unitPrice": 249.90,
+      "quantity": 2,
+      "lineTotal": 499.80,
+      "stock": 25,
+      "available": true
+    }
+  ],
+  "totalItems": 2,
+  "subtotal": 499.80
+}
+```
+
+| Campo | O que é |
+|---|---|
+| `id` | Id do **item do carrinho**: é ele que vai na URL do `PATCH`/`DELETE`, não o `productId` |
+| `unitPrice` | Preço **atual** do produto. Se o vendedor mudar o preço, o carrinho acompanha |
+| `lineTotal` | `unitPrice × quantity` |
+| `stock` | Estoque atual do produto (para mostrar "Só restam N") |
+| `available` | `false` se o produto foi apagado ou não tem estoque para a quantidade do item |
+| `totalItems` | Soma das quantidades dos itens **disponíveis** (bom para o número no ícone do carrinho) |
+| `subtotal` | Soma dos `lineTotal` dos itens **disponíveis** |
+
+Item indisponível **continua na lista** (para o usuário ver "Indisponível" e tirar ou diminuir), mas não entra no `totalItems` nem no `subtotal`.
+
+### Rotas
+
+```
+GET    /api/me/cart                  → 200 carrinho
+POST   /api/me/cart/items            → 200 carrinho     body { "productId": "...", "quantity": 1 }
+PATCH  /api/me/cart/items/{itemId}   → 200 carrinho     body { "quantity": 3 }
+DELETE /api/me/cart/items/{itemId}   → 200 carrinho
+DELETE /api/me/cart                  → 204 (esvazia)
+```
+
+`quantity` é obrigatório e vai de 1 a 99. Para tirar um item, use o `DELETE`, não `quantity: 0`.
+
+### Regras
+
+- **Adicionar um produto que já está no carrinho soma** as quantidades: dois `POST` de 1 dão 2. Para trocar o valor, use o `PATCH`.
+- A quantidade final não passa do **estoque** do produto nem de **99**.
+- Não dá para pôr o **próprio produto** no carrinho.
+- O carrinho **não reserva estoque**: outra pessoa pode comprar antes. Por isso o `available` é recalculado a cada resposta.
+
+### Erros do módulo
+
+| Status | `message` | Quando |
+|---|---|---|
+| `404` | `Product not found with id: ...` | `POST` de produto inexistente ou apagado |
+| `404` | `Cart item not found with id: ...` | `itemId` que não existe ou é do carrinho de outra pessoa |
+| `409` | `Product is already in the cart` | Dois `POST` do mesmo produto ao mesmo tempo (duplo clique). Basta recarregar o carrinho |
+| `422` | `Only N in stock` / `Product is out of stock` | Quantidade final maior que o estoque |
+| `422` | `Maximum 99 units per product` | Quantidade final maior que 99 |
+| `422` | `You can't buy your own product` | O produto é da loja de quem está logado |
+| `422` | `Product is no longer available` | `PATCH` num item cujo produto foi apagado (só dá para remover) |
+| `422` | `Invalid input data` (com `errors`) | `quantity` fora de 1–99 ou `productId` faltando |
+
+Os `422` de regra vêm com `"error": "Business rule"`; os de validação, com `"error": "Validation error"` e a lista `errors` (seção 5).
+
+### Exemplos (front)
+
+```js
+// adicionar (botão "Adicionar" do card)
+const res = await authFetch(`${API}/api/me/cart/items`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ productId: prod.id, quantity: 1 }),
+});
+if (res.status === 401) location.href = "/login.html";
+const cart = await res.json();
+if (!res.ok) alert(cart.message);          // ex.: "Only 3 in stock"
+else badge.textContent = cart.totalItems;  // número no ícone do carrinho
+
+// mudar a quantidade de um item
+await authFetch(`${API}/api/me/cart/items/${item.id}`, {
+  method: "PATCH",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ quantity: 3 }),
+});
+
+// remover um item
+await authFetch(`${API}/api/me/cart/items/${item.id}`, { method: "DELETE" });
+
+// esvaziar
+await authFetch(`${API}/api/me/cart`, { method: "DELETE" });  // 204, sem corpo
+```
+
+---
+
+## 12. Como testar com curl
 
 ```bash
 API=https://hoko-api.onrender.com
@@ -1022,6 +1130,13 @@ curl -X DELETE $API/api/categories/{id} -H "Authorization: Bearer $TOKEN"
 
 # Minha conta (logado)
 curl $API/api/me -H "Authorization: Bearer $TOKEN"
+
+# Carrinho (logado)
+curl $API/api/me/cart -H "Authorization: Bearer $TOKEN"
+curl -X POST $API/api/me/cart/items \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"productId":"<id do produto>","quantity":1}'
 ```
 
 Rodando a API na sua máquina (conecta no mesmo Supabase, mas sem cold start):
@@ -1032,7 +1147,7 @@ API=http://localhost:8080
 
 ---
 
-## 12. Pendências conhecidas
+## 13. Pendências conhecidas
 
 | Item | Impacto |
 |---|---|

@@ -4,6 +4,8 @@ import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import org.junit.jupiter.api.Test;
 
+import java.util.UUID;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -41,6 +43,17 @@ class RequestDTOValidationTest {
         assertTrue(validator.validate(address("SP", "13010000")).isEmpty());
         assertEquals(1, validator.validate(address("S1", "13010000")).size());
         assertEquals(1, validator.validate(address("SP", "1301-0000")).size());
+    }
+
+    @Test
+    void cartQuantityMustBeBetween1And99() {
+        UUID productId = UUID.randomUUID();
+        assertTrue(validator.validate(new CartItemRequestDTO(productId, 1)).isEmpty());
+        assertTrue(validator.validate(new CartItemRequestDTO(productId, 99)).isEmpty());
+        assertEquals(1, validator.validate(new CartItemRequestDTO(productId, 0)).size());
+        assertEquals(1, validator.validate(new CartItemRequestDTO(productId, 100)).size());
+        assertEquals(1, validator.validate(new CartItemRequestDTO(null, 1)).size());
+        assertEquals(1, validator.validate(new CartQuantityDTO(0)).size());
     }
 
     private static AddressRequestDTO address(String state, String zip) {

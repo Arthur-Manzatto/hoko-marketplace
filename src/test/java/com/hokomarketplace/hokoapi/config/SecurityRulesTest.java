@@ -1,5 +1,6 @@
 package com.hokomarketplace.hokoapi.config;
 
+import com.hokomarketplace.hokoapi.dto.CartResponseDTO;
 import com.hokomarketplace.hokoapi.dto.ProductResponseDTO;
 import com.hokomarketplace.hokoapi.dto.filters.ProductFilter;
 import com.hokomarketplace.hokoapi.entity.Category;
@@ -50,6 +51,7 @@ class SecurityRulesTest {
     @MockitoBean ProductService productService;
     @MockitoBean CategoryService categoryService;
     @MockitoBean AddressService addressService;
+    @MockitoBean CartService cartService;
 
     private final UUID userId = UUID.randomUUID();
 
@@ -156,6 +158,31 @@ class SecurityRulesTest {
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", "http://localhost/api/products/" + productId));
         verify(productService).insert(eq(userId), any());
+    }
+
+    // ----------------------------------------------------------- /api/me/cart
+
+    @Test
+    void cartNeedsLoginAndUsesTheTokenOwner() throws Exception {
+        when(cartService.get(userId)).thenReturn(new CartResponseDTO(List.of(), 0, BigDecimal.ZERO));
+
+        mvc.perform(get("/api/me/cart")).andExpect(status().isUnauthorized());
+
+        mvc.perform(get("/api/me/cart").with(user()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalItems").value(0));
+        verify(cartService).get(userId);
+    }
+
+    @Test
+    void cartRejectsInvalidQuantity() throws Exception {
+        mvc.perform(post("/api/me/cart/items").with(user())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"productId":"%s","quantity":0}
+                                """.formatted(UUID.randomUUID())))
+                .andExpect(status().isUnprocessableContent());
+        verify(cartService, never()).add(any(), any());
     }
 
     // ----------------------------------------------------------------- admin
