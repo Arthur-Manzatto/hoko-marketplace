@@ -827,10 +827,133 @@ body{
     color: #ef4444;
 }
 
+/* Foto por cima do placeholder: aparece com fade quando carrega (igual aos cards) */
+.produto-foto .produto-foto-img {
+    position: absolute;
+    inset: 0;
+    height: 100%;
+    max-height: none;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+
+.produto-foto .produto-foto-img.loaded {
+    opacity: 1;
+}
+
+.produto-foto .produto-foto-img[hidden] {
+    display: none;
+}
+
+.produto-favorito {
+    z-index: 1;
+}
+
+/* Miniaturas */
+
+.produto-miniaturas {
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.produto-miniaturas:empty {
+    display: none !important;
+}
+
+.produto-miniatura {
+    width: 72px;
+    height: 72px;
+    padding: 4px;
+    background-color: #f8fafc;
+    border: 2px solid #edf0f5;
+    border-radius: 12px;
+    cursor: pointer;
+}
+
+.produto-miniatura img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 8px;
+}
+
+.produto-miniatura[aria-current="true"] {
+    border-color: #013095;
+}
+
 /* Informações e preço */
 
 .produto-resumo {
     min-width: 0;
+}
+
+.produto-estoque.esgotado {
+    color: #dc2626;
+}
+
+.produto-pagina button:disabled,
+.produto-pagina select:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+/* Descrição */
+
+.produto-descricao {
+    margin-top: 24px;
+    padding: 30px;
+    background-color: #fff;
+    border: 1px solid #edf0f5;
+    border-radius: 24px;
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+}
+
+.produto-descricao h2 {
+    margin-bottom: 12px;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.produto-descricao p {
+    margin-bottom: 0;
+    color: #334155;
+    line-height: 1.7;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+}
+
+.produto-descricao p.vazia {
+    color: #94a3b8;
+}
+
+/* Skeleton da página do produto (mesma grade do conteúdo real) */
+
+.produto-sk-caminho {
+    width: 220px;
+    margin-bottom: 0;
+}
+
+.produto-sk-titulo {
+    width: 85%;
+    height: 34px;
+    margin-top: 8px;
+}
+
+.produto-sk-preco {
+    width: 45%;
+    height: 44px;
+    margin: 28px 0 10px;
+}
+
+.produto-sk-bloco {
+    width: 100%;
+    height: 130px;
+    margin: 26px 0 22px;
+    border-radius: 16px;
+}
+
+.produto-sk-botoes {
+    margin-top: 22px;
 }
 
 .produto-condicao {
@@ -1064,9 +1187,15 @@ body{
 }
 
 @media (max-width: 575.98px) {
-    .produto-detalhe {
+    .produto-detalhe,
+    .produto-descricao {
         padding: 16px;
         border-radius: 18px;
+    }
+
+    .produto-miniatura {
+        width: 60px;
+        height: 60px;
     }
 
     .produto-foto {

@@ -1,6 +1,6 @@
 import { getJson, getJsonCached } from "./api.js";
 import { escapeHtml as e, showContent, showError, showSkeleton, showState, formatPrice } from "./ui.js";
-import { productCard, productImage } from "./index.js";
+import { productCard } from "./cards.js";
 
 
 const cat_header = document.getElementById("category_header");

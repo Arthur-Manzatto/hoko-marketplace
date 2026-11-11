@@ -302,7 +302,7 @@ A API devolve uma **página** (seção 4 do `api.md`): os itens ficam em `page.c
 
 ---
 
-## 6. Card de produto (`index.js`)
+## 6. Card de produto (`cards.js`)
 
 Dado da API (`GET /api/products`, modelo "lista (cards)" na seção 10 do `api.md`):
 
@@ -553,7 +553,7 @@ async function carregarProdutos() {
 carregarProdutos();
 ```
 
-Para não copiar o `productCard` e o `productImage` em cada página, mova os dois para um arquivo próprio (ex.: `js/cards.js`, com `export function productCard`) e importe onde precisar.
+O `productCard` e o `productImage` ficam em `js/cards.js`: importe de lá (`import { productCard } from "./cards.js"`). **Nunca importe de `index.js`** — importar um módulo executa o código dele, e a página rodaria o carregamento da home (erro no console em elementos que não existem).
 
 ### Checklist
 
@@ -567,3 +567,18 @@ Para não copiar o `productCard` e o `productImage` em cada página, mova os doi
 - [ ] `encodeURIComponent` em slug ou busca que entra numa URL
 - [ ] `getJson` (sem token) para vitrine; `apiFetch` só para `/api/me/**`
 - [ ] Testar com a API dormindo: o aviso de cold start aparece e o skeleton segura a tela
+
+---
+
+## 10. Página do produto (`produtos.html` + `product.js`)
+
+`produtos.html?slug=<slug>` mostra um produto (`GET /api/products/slug/{slug}`, modelo "detalhe" na seção 10 do `api.md`).
+
+- **Skeleton escrito no HTML** (`#product_skeleton`): aparece antes do JS carregar. O conteúdo real (`#product_view`) começa com `hidden` e o `render()` troca um pelo outro com `.fade-in`.
+- **Estados:** sem `?slug=` ou `404` → "Produto não encontrado" + link pra home; outro erro → `showError` com "Tentar de novo" (volta ao skeleton e busca de novo).
+- **Textos** são preenchidos com `textContent` (não precisa de `e()`, o navegador nunca interpreta como HTML).
+- **Fotos:** `imageUrls[0]` na principal, miniaturas quando há 2 ou mais (clique troca a principal). Foto quebrada some e fica o placeholder.
+- **Descrição:** `white-space: pre-line` respeita as quebras de linha; sem descrição mostra um texto cinza.
+- **Estoque:** o select vai de 1 até `min(quantity, 10)`; `quantity = 0` mostra "Esgotado" e desabilita select e botões.
+- Os botões "Adicionar ao carrinho" / "Comprar agora" ainda não chamam a API (`POST /api/me/cart/items` exige login).
+

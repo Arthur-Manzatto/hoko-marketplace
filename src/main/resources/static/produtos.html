@@ -116,19 +116,47 @@
 
  
     <section class="container produto-pagina">
+        <!-- Skeleton já no HTML: aparece na hora, antes do JS e da API. Mesma grade do conteúdo real. -->
+        <div id="product_skeleton" aria-busy="true">
+            <div class="produto-caminho" aria-hidden="true">
+                <span class="skeleton skeleton-text produto-sk-caminho"></span>
+            </div>
+            <div class="produto-detalhe" aria-hidden="true">
+                <div class="row">
+                    <div class="col-12 col-lg-6 mb-4 mb-lg-0">
+                        <div class="produto-foto skeleton"></div>
+                    </div>
+                    <div class="produto-resumo col-12 col-lg-6">
+                        <span class="skeleton skeleton-text w-25"></span>
+                        <span class="skeleton skeleton-title produto-sk-titulo"></span>
+                        <span class="skeleton skeleton-text w-50"></span>
+                        <span class="skeleton produto-sk-preco"></span>
+                        <span class="skeleton skeleton-text w-50"></span>
+                        <span class="skeleton produto-sk-bloco"></span>
+                        <span class="skeleton skeleton-text w-75"></span>
+                        <div class="row produto-sk-botoes">
+                            <div class="col-12 col-sm-6 mb-2 mb-sm-0"><span class="skeleton skeleton-btn"></span></div>
+                            <div class="col-12 col-sm-6"><span class="skeleton skeleton-btn"></span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="product_view" hidden>
         <nav class="produto-caminho d-flex flex-wrap align-items-center" aria-label="Caminho de navegação">
             <a href="index.html">Início</a><span aria-hidden="true">/</span>
             <a href="#" id="product_cat_path"></a><span aria-hidden="true">/</span>
             <span aria-current="page" id="product_name_path"></span>
         </nav>
 
-        <div class="produto-detalhe" aria-labelledby="produto-titulo">
+        <div class="produto-detalhe" aria-labelledby="product_title">
             <div class="row">
-            <div class="col-12 col-lg-6 mb-4 mb-lg-0">
-            <div class="produto-foto d-flex align-items-center justify-content-center h-100">
-                
-                <img id="product_img" class="produto-foto-img" src="#" alt="">
-                
+            <div class="col-12 col-lg-6 mb-4 mb-lg-0 d-flex flex-column">
+            <div class="produto-foto d-flex align-items-center justify-content-center flex-grow-1">
+
+                <img id="product_img" class="produto-foto-img" alt="">
+
                 <div class="produto-foto-placeholder d-flex flex-column align-items-center">
                     <i class="bi bi-image" aria-hidden="true"></i>
                     <span>Imagem do produto</span>
@@ -137,6 +165,7 @@
                     <i class="bi bi-heart" aria-hidden="true"></i>
                 </button>
             </div>
+            <div class="produto-miniaturas d-flex flex-wrap" id="product_thumbs" aria-label="Fotos do produto"></div>
 
             </div>
             <div class="produto-resumo col-12 col-lg-6">
@@ -172,12 +201,9 @@
                         <p class="produto-unidades" id="product_units"></p>
                     </div>
                     <div class="produto-quantidade d-flex align-items-center">
-                        <label for="produto-quantidade">Quantidade</label>
-                        <select class="custom-select" id="product_qty" name="quantidade">
-                            <option>1</option><option>2</option><option>3</option>
-                            <option>4</option><option>5</option><option>6</option>
-                            <option>7</option><option>8</option><option>9</option><option>10</option>
-                        </select>
+                        <label for="product_qty">Quantidade</label>
+                        <!-- opções montadas pelo product.js conforme o estoque (até 10) -->
+                        <select class="custom-select" id="product_qty" name="quantidade"></select>
                     </div>
                 </div>
 
@@ -198,6 +224,12 @@
                 </div>
             </div>
             </div>
+        </div>
+
+        <section class="produto-descricao" aria-labelledby="product_desc_title">
+            <h2 id="product_desc_title">Descrição</h2>
+            <p id="product_description"></p>
+        </section>
         </div>
     </section>
 
