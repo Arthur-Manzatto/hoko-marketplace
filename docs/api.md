@@ -42,7 +42,7 @@ Authorization: Bearer <access_token>
 | Quem | Rotas |
 |---|---|
 | **Qualquer um** (sem token) | `GET /api/categories/**`, `GET /api/sellers/**`, `GET /api/products/**` |
-| **Logado** | `/api/me/**` (perfil, loja, produtos da loja, endereços, carrinho) |
+| **Logado** | `/api/me/**` (perfil, loja, produtos da loja, endereços, carrinho, pedidos) |
 | **Admin** | criar/editar/apagar categorias, `/api/users/**` |
 
 O `apiFetch` do `js/api.js` já manda o token. Nos exemplos deste documento, `authFetch` é um `fetch` com o token:
@@ -1099,7 +1099,183 @@ await authFetch(`${API}/api/me/cart`, { method: "DELETE" });  // 204, sem corpo
 
 ---
 
-## 12. Como testar com curl
+## 12. Pedidos (`/api/me/orders`)
+
+Pedidos do usuário logado, como **comprador**. Todas as rotas exigem **login** (seção 2) e só enxergam os pedidos do dono do token.
+
+### Fluxo
+
+```
+carrinho ──POST /checkout──▶ pedido(s) PENDING ──POST /{id}/pay──▶ PAID ──(vendedor)──▶ SHIPPED ──▶ DELIVERED
+                                   │                                  │
+                                   └──────────POST /{id}/cancel───────┴──▶ CANCELED
+```
+
+- **Um pedido por loja.** Se o carrinho tem produtos de 2 lojas, o checkout cria 2 pedidos, cada um com seu total, status e pagamento. Cada loja despacha o seu.
+- **O checkout baixa o estoque** e **esvazia o carrinho**. É tudo ou nada: se um item falhar, nenhum pedido é criado e o carrinho fica como estava.
+- **Preço, nome, foto e endereço são copiados** no pedido. Se o vendedor mudar o preço ou o comprador editar o endereço depois, o pedido não muda.
+- **Frete:** sempre `0` por enquanto (`shippingCost`).
+- **Pagamento simulado:** não existe gateway. O checkout cria o pagamento `PENDING`, e o `POST /{id}/pay` confirma na hora, como se o PIX tivesse caído.
+- `SHIPPED` e `DELIVERED` vão ser marcados pelo vendedor, no módulo de vendas (ainda não existe).
+
+### Status
+
+| Pedido (`status`) | Significado |
+|---|---|
+| `PENDING` | Criado no checkout, esperando pagamento |
+| `PAID` | Pago |
+| `SHIPPED` | Enviado pela loja |
+| `DELIVERED` | Entregue |
+| `CANCELED` | Cancelado (o estoque voltou) |
+
+| Pagamento (`payment.status`) | Significado |
+|---|---|
+| `PENDING` | Aguardando |
+| `PAID` | Pago (`paidAt` preenchido) |
+| `FAILED` | Pedido cancelado antes de pagar |
+| `REFUNDED` | Pedido cancelado depois de pago |
+
+`paymentMethod` é `PIX`, `CARD` ou `BOLETO`. Parcelas (`installments`, de 1 a 12) só no `CARD`.
+
+### Modelo — lista
+
+`GET /api/me/orders` devolve uma página (seção 4) disto:
+
+```json
+{
+  "id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+  "status": "PENDING",
+  "total": 499.80,
+  "itemCount": 2,
+  "sellerStoreName": "TechStore Oficial",
+  "sellerSlug": "techstore-oficial",
+  "paymentMethod": "PIX",
+  "paymentStatus": "PENDING",
+  "createdAt": "2026-11-11T17:02:41Z"
+}
+```
+
+`itemCount` é a soma das quantidades.
+
+### Modelo — detalhe
+
+Usado no detalhe e na resposta do checkout, do pagar e do cancelar:
+
+```json
+{
+  "id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+  "status": "PAID",
+  "subtotal": 499.80,
+  "shippingCost": 0.00,
+  "total": 499.80,
+  "sellerStoreName": "TechStore Oficial",
+  "sellerSlug": "techstore-oficial",
+  "shippingAddress": {
+    "street": "Rua das Flores",
+    "number": "123",
+    "complement": "Apto 4",
+    "neighborhood": "Centro",
+    "city": "Campinas",
+    "state": "SP",
+    "zipCode": "13010-000"
+  },
+  "items": [
+    {
+      "productId": "94541e5c-8609-4e5c-be26-2770b2696f5d",
+      "productName": "Fone Bluetooth HoKo Sound",
+      "productSlug": "fone-bluetooth-hoko-sound",
+      "imageUrl": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&q=80",
+      "unitPrice": 249.90,
+      "quantity": 2,
+      "lineTotal": 499.80
+    }
+  ],
+  "payment": {
+    "method": "PIX",
+    "status": "PAID",
+    "amount": 499.80,
+    "installments": 1,
+    "paidAt": "2026-11-11T17:03:10Z"
+  },
+  "createdAt": "2026-11-11T17:02:41Z",
+  "updatedAt": "2026-11-11T17:03:10Z"
+}
+```
+
+- `unitPrice` é o preço **do dia da compra**.
+- `productSlug` vem `null` quando o produto saiu da vitrine (apagado). O item continua no pedido, só não dá para linkar.
+
+### Rotas
+
+```
+POST /api/me/orders/checkout        → 201 [pedido, pedido, ...]   (um por loja)
+GET  /api/me/orders                 ?status=&page=&size=&sort=     → 200 (modelo de lista, padrão sort=createdAt,desc)
+GET  /api/me/orders/{id}            → 200 (detalhe)
+POST /api/me/orders/{id}/pay        → 200 (detalhe)   pagamento simulado
+POST /api/me/orders/{id}/cancel     → 200 (detalhe)
+```
+
+**Body do checkout:**
+
+```json
+{
+  "addressId": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+  "paymentMethod": "CARD",
+  "installments": 3
+}
+```
+
+| Campo | Regra |
+|---|---|
+| `addressId` | Obrigatório. Um endereço do usuário (seção 7) |
+| `paymentMethod` | Obrigatório. `PIX`, `CARD` ou `BOLETO` |
+| `installments` | Opcional (padrão `1`). De 1 a 12, e maior que 1 só no `CARD` |
+
+**Cancelar** vale para pedido `PENDING` ou `PAID`: o estoque volta para os produtos e o pagamento vira `FAILED` ou `REFUNDED`. Depois de enviado não dá mais.
+
+### Erros do módulo
+
+| Status | `message` | Quando |
+|---|---|---|
+| `404` | `Address not found...` | `addressId` não existe, foi apagado ou é de outra pessoa |
+| `404` | `Order not found with id: ...` | Pedido que não existe ou é de outra pessoa |
+| `422` | `Cart is empty` | Checkout com o carrinho vazio |
+| `422` | `Some items are unavailable: X, Y` | Algum item do carrinho está com `available: false` (seção 11). Ajuste o carrinho e tente de novo |
+| `422` | `Not enough stock for X` | Outra pessoa comprou o estoque no meio do checkout. Nada foi criado |
+| `422` | `Installments are only allowed for CARD` | Parcelado no PIX ou boleto |
+| `422` | `Order can't be paid (status X)` | Pagar pedido que não está `PENDING` |
+| `422` | `Order is already canceled` / `Order can't be canceled after shipping` | Cancelar pedido cancelado, enviado ou entregue |
+| `422` | `Invalid input data` (com `errors`) | Body do checkout inválido |
+| `400` | `Invalid value for parameter 'status'` | `?status=` com valor fora da tabela |
+
+### Exemplos (front)
+
+```js
+// fechar o carrinho
+const res = await authFetch(`${API}/api/me/orders/checkout`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ addressId, paymentMethod: "PIX" }),
+});
+const body = await res.json();
+if (!res.ok) return alert(body.message);   // ex.: "Some items are unavailable: Fone..."
+const orders = body;                        // um por loja
+
+// "pagar" (simulado) cada pedido criado
+for (const order of orders) {
+  await authFetch(`${API}/api/me/orders/${order.id}/pay`, { method: "POST" });
+}
+
+// meus pedidos (mais recentes primeiro)
+const page = await (await authFetch(`${API}/api/me/orders?size=10`)).json();
+
+// cancelar
+await authFetch(`${API}/api/me/orders/${id}/cancel`, { method: "POST" });
+```
+
+---
+
+## 13. Como testar com curl
 
 ```bash
 API=https://hoko-api.onrender.com
@@ -1131,6 +1307,12 @@ curl -X DELETE $API/api/categories/{id} -H "Authorization: Bearer $TOKEN"
 # Minha conta (logado)
 curl $API/api/me -H "Authorization: Bearer $TOKEN"
 
+# Fechar o carrinho (logado)
+curl -X POST $API/api/me/orders/checkout \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"addressId":"<id do endereço>","paymentMethod":"PIX"}'
+
 # Carrinho (logado)
 curl $API/api/me/cart -H "Authorization: Bearer $TOKEN"
 curl -X POST $API/api/me/cart/items \
@@ -1147,7 +1329,7 @@ API=http://localhost:8080
 
 ---
 
-## 13. Pendências conhecidas
+## 14. Pendências conhecidas
 
 | Item | Impacto |
 |---|---|

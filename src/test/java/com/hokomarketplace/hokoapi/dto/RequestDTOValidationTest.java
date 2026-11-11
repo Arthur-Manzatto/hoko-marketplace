@@ -1,5 +1,6 @@
 package com.hokomarketplace.hokoapi.dto;
 
+import com.hokomarketplace.hokoapi.entity.enums.PaymentMethod;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import org.junit.jupiter.api.Test;
@@ -54,6 +55,16 @@ class RequestDTOValidationTest {
         assertEquals(1, validator.validate(new CartItemRequestDTO(productId, 100)).size());
         assertEquals(1, validator.validate(new CartItemRequestDTO(null, 1)).size());
         assertEquals(1, validator.validate(new CartQuantityDTO(0)).size());
+    }
+
+    @Test
+    void checkoutNeedsAddressAndMethodAndUpTo12Installments() {
+        UUID addressId = UUID.randomUUID();
+        assertTrue(validator.validate(new CheckoutRequestDTO(addressId, PaymentMethod.PIX, null)).isEmpty());
+        assertTrue(validator.validate(new CheckoutRequestDTO(addressId, PaymentMethod.CARD, 12)).isEmpty());
+        assertEquals(1, validator.validate(new CheckoutRequestDTO(addressId, PaymentMethod.CARD, 13)).size());
+        assertEquals(1, validator.validate(new CheckoutRequestDTO(null, PaymentMethod.PIX, null)).size());
+        assertEquals(1, validator.validate(new CheckoutRequestDTO(addressId, null, null)).size());
     }
 
     private static AddressRequestDTO address(String state, String zip) {

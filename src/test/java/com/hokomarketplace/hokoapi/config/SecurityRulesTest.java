@@ -52,6 +52,7 @@ class SecurityRulesTest {
     @MockitoBean CategoryService categoryService;
     @MockitoBean AddressService addressService;
     @MockitoBean CartService cartService;
+    @MockitoBean OrderService orderService;
 
     private final UUID userId = UUID.randomUUID();
 
@@ -183,6 +184,22 @@ class SecurityRulesTest {
                                 """.formatted(UUID.randomUUID())))
                 .andExpect(status().isUnprocessableContent());
         verify(cartService, never()).add(any(), any());
+    }
+
+    // --------------------------------------------------------- /api/me/orders
+
+    @Test
+    void checkoutNeedsLoginAndUsesTheTokenOwner() throws Exception {
+        String body = """
+                {"addressId":"%s","paymentMethod":"PIX"}""".formatted(UUID.randomUUID());
+        when(orderService.checkout(eq(userId), any())).thenReturn(List.of());
+
+        mvc.perform(post("/api/me/orders/checkout").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isUnauthorized());
+
+        mvc.perform(post("/api/me/orders/checkout").with(user()).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isCreated());
+        verify(orderService).checkout(eq(userId), any());
     }
 
     // ----------------------------------------------------------------- admin

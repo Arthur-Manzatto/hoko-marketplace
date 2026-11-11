@@ -63,7 +63,10 @@ public class ResourceExceptionHandler {
             Map.entry("products_quantity_check", "Quantity must be zero or positive"),
             Map.entry("product_images_url_https", "Image URL must be https"),
             Map.entry("cart_items_user_product_key", "Product is already in the cart"),
-            Map.entry("cart_items_quantity_check", "Quantity must be greater than zero")
+            Map.entry("cart_items_quantity_check", "Quantity must be greater than zero"),
+            Map.entry("orders_state_format", "Invalid state in shipping address"),
+            Map.entry("orders_zip_format", "Invalid zip code in shipping address"),
+            Map.entry("payments_order_id_key", "Order already has a payment")
     );
 
     @ExceptionHandler(BusinessException.class)
