@@ -1,6 +1,7 @@
 package com.hokomarketplace.hokoapi.entity;
 
 import com.hokomarketplace.hokoapi.entity.enums.OrderStatus;
+import com.hokomarketplace.hokoapi.service.exception.BusinessException;
 import jakarta.persistence.*;
 import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.CreationTimestamp;
@@ -72,6 +73,15 @@ public class Order implements Serializable {
     @Column(name = "ship_zip_code", nullable = false)
     private String shipZipCode;
 
+    @Column(name = "tracking_code", length = 40)
+    private String trackingCode;
+
+    @Column(name = "shipped_at")
+    private Instant shippedAt;
+
+    @Column(name = "delivered_at")
+    private Instant deliveredAt;
+
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     @BatchSize(size = 50)
     private List<OrderItem> items = new ArrayList<>();
@@ -105,6 +115,27 @@ public class Order implements Serializable {
     public void addItem(OrderItem item) {
         item.setOrder(this);
         items.add(item);
+    }
+
+    /** PAID -> SHIPPED (vendedor). */
+    public void ship(String trackingCode) {
+        requireStatus(OrderStatus.PAID, "Only paid orders can be shipped");
+        this.status = OrderStatus.SHIPPED;
+        this.trackingCode = trackingCode;
+        this.shippedAt = Instant.now();
+    }
+
+    /** SHIPPED -> DELIVERED (vendedor). */
+    public void deliver() {
+        requireStatus(OrderStatus.SHIPPED, "Only shipped orders can be delivered");
+        this.status = OrderStatus.DELIVERED;
+        this.deliveredAt = Instant.now();
+    }
+
+    private void requireStatus(OrderStatus expected, String message) {
+        if (status != expected) {
+            throw new BusinessException(message + " (status " + status + ")");
+        }
     }
 
     public BigDecimal getSubtotal() {
@@ -185,6 +216,18 @@ public class Order implements Serializable {
 
     public String getShipZipCode() {
         return shipZipCode;
+    }
+
+    public String getTrackingCode() {
+        return trackingCode;
+    }
+
+    public Instant getShippedAt() {
+        return shippedAt;
+    }
+
+    public Instant getDeliveredAt() {
+        return deliveredAt;
     }
 
     public List<OrderItem> getItems() {

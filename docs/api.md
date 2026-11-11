@@ -42,7 +42,7 @@ Authorization: Bearer <access_token>
 | Quem | Rotas |
 |---|---|
 | **Qualquer um** (sem token) | `GET /api/categories/**`, `GET /api/sellers/**`, `GET /api/products/**` |
-| **Logado** | `/api/me/**` (perfil, loja, produtos da loja, endereços, carrinho, pedidos) |
+| **Logado** | `/api/me/**` (perfil, loja, produtos da loja, endereços, carrinho, pedidos, vendas da loja) |
 | **Admin** | criar/editar/apagar categorias, `/api/users/**` |
 
 O `apiFetch` do `js/api.js` já manda o token. Nos exemplos deste documento, `authFetch` é um `fetch` com o token:
@@ -1116,7 +1116,7 @@ carrinho ──POST /checkout──▶ pedido(s) PENDING ──POST /{id}/pay─
 - **Preço, nome, foto e endereço são copiados** no pedido. Se o vendedor mudar o preço ou o comprador editar o endereço depois, o pedido não muda.
 - **Frete:** sempre `0` por enquanto (`shippingCost`).
 - **Pagamento simulado:** não existe gateway. O checkout cria o pagamento `PENDING`, e o `POST /{id}/pay` confirma na hora, como se o PIX tivesse caído.
-- `SHIPPED` e `DELIVERED` vão ser marcados pelo vendedor, no módulo de vendas (ainda não existe).
+- `SHIPPED` e `DELIVERED` são marcados pelo **vendedor** (seção 13). A loja também pode cancelar um pedido que ainda não enviou.
 
 ### Status
 
@@ -1170,6 +1170,7 @@ Usado no detalhe e na resposta do checkout, do pagar e do cancelar:
   "total": 499.80,
   "sellerStoreName": "TechStore Oficial",
   "sellerSlug": "techstore-oficial",
+  "buyerName": "João Silva",
   "shippingAddress": {
     "street": "Rua das Flores",
     "number": "123",
@@ -1197,6 +1198,9 @@ Usado no detalhe e na resposta do checkout, do pagar e do cancelar:
     "installments": 1,
     "paidAt": "2026-11-11T17:03:10Z"
   },
+  "trackingCode": null,
+  "shippedAt": null,
+  "deliveredAt": null,
   "createdAt": "2026-11-11T17:02:41Z",
   "updatedAt": "2026-11-11T17:03:10Z"
 }
@@ -1204,6 +1208,8 @@ Usado no detalhe e na resposta do checkout, do pagar e do cancelar:
 
 - `unitPrice` é o preço **do dia da compra**.
 - `productSlug` vem `null` quando o produto saiu da vitrine (apagado). O item continua no pedido, só não dá para linkar.
+- `trackingCode`, `shippedAt` e `deliveredAt` são preenchidos pela loja ao enviar e entregar. `trackingCode` pode ficar `null` mesmo depois de enviado (é opcional).
+- `buyerName` é o nome de quem comprou (aparece para o vendedor; para o comprador é o próprio nome).
 
 ### Rotas
 
@@ -1275,7 +1281,104 @@ await authFetch(`${API}/api/me/orders/${id}/cancel`, { method: "POST" });
 
 ---
 
-## 13. Como testar com curl
+## 13. Vendas (vendedor) — `/api/me/seller/orders`
+
+Os pedidos que a **loja do usuário logado** recebeu. Exige login e loja ativa: quem não tem loja recebe `404` (como em `/api/me/seller`). Pedido de outra loja também é `404`.
+
+### O que o vendedor faz
+
+| De → Para | Quem | Rota |
+|---|---|---|
+| `PENDING` → `PAID` | Comprador | `POST /api/me/orders/{id}/pay` (seção 12) |
+| `PAID` → `SHIPPED` | **Vendedor** | `POST /api/me/seller/orders/{id}/ship` |
+| `SHIPPED` → `DELIVERED` | **Vendedor** | `POST /api/me/seller/orders/{id}/deliver` |
+| `PENDING`/`PAID` → `CANCELED` | Comprador **ou vendedor** | `.../cancel` |
+
+Qualquer outra transição responde `422` com o status atual (ex.: `Only paid orders can be shipped (status PENDING)`). O cancelamento pela loja tem o mesmo efeito do cancelamento pelo comprador: o estoque volta e o pagamento vira `REFUNDED` (se pago) ou `FAILED`.
+
+### Rotas
+
+```
+GET  /api/me/seller/orders           ?status=&page=&size=&sort=   → 200 (modelo de lista abaixo, padrão sort=createdAt,desc)
+GET  /api/me/seller/orders/summary                                 → 200 (resumo abaixo)
+GET  /api/me/seller/orders/{id}                                    → 200 (mesmo detalhe da seção 12)
+POST /api/me/seller/orders/{id}/ship     body opcional { "trackingCode": "AA123456789BR" } → 200 (detalhe)
+POST /api/me/seller/orders/{id}/deliver                            → 200 (detalhe)
+POST /api/me/seller/orders/{id}/cancel                             → 200 (detalhe)
+```
+
+**`trackingCode`** é opcional: até 40 caracteres, só letras, números e hífen. A API salva em maiúsculas (`aa123...br` vira `AA123...BR`). O body pode ser omitido para enviar sem rastreio.
+
+### Modelo — lista
+
+```json
+{
+  "id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+  "status": "PAID",
+  "total": 499.80,
+  "itemCount": 2,
+  "buyerName": "João Silva",
+  "paymentMethod": "PIX",
+  "paymentStatus": "PAID",
+  "createdAt": "2026-11-11T17:02:41Z",
+  "shippedAt": null
+}
+```
+
+Do comprador, a loja vê só o **nome** e, no detalhe, o **endereço de entrega**. E-mail e telefone não são expostos.
+
+### Resumo
+
+`GET /api/me/seller/orders/summary`:
+
+```json
+{
+  "ordersByStatus": { "PENDING": 1, "PAID": 2, "SHIPPED": 0, "DELIVERED": 1, "CANCELED": 3 },
+  "revenue": 150.00,
+  "pendingRevenue": 30.00,
+  "toShip": 2
+}
+```
+
+| Campo | O que é |
+|---|---|
+| `ordersByStatus` | Quantidade de pedidos em cada status (todos aparecem, com `0` se não houver) |
+| `revenue` | Soma dos pedidos já pagos: `PAID` + `SHIPPED` + `DELIVERED` |
+| `pendingRevenue` | Soma dos pedidos `PENDING` (aguardando pagamento) |
+| `toShip` | Pedidos `PAID` esperando a loja despachar |
+
+### Erros do módulo
+
+| Status | `message` | Quando |
+|---|---|---|
+| `404` | `Seller not found...` | O usuário não tem loja (ou ela foi apagada) |
+| `404` | `Order not found with id ... for this store` | Pedido não existe ou é de outra loja |
+| `422` | `Only paid orders can be shipped (status X)` | `ship` em pedido que não está `PAID` |
+| `422` | `Only shipped orders can be delivered (status X)` | `deliver` em pedido que não está `SHIPPED` |
+| `422` | `Order can't be canceled after shipping` / `Order is already canceled` | `cancel` depois de enviado |
+| `422` | `Invalid input data` (com `errors`) | `trackingCode` com espaço, símbolo ou mais de 40 caracteres |
+
+### Exemplos (front)
+
+```js
+// painel da loja
+const summary = await (await authFetch(`${API}/api/me/seller/orders/summary`)).json();
+const toShip = await (await authFetch(`${API}/api/me/seller/orders?status=PAID`)).json();
+
+// marcar como enviado (com ou sem rastreio)
+await authFetch(`${API}/api/me/seller/orders/${id}/ship`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ trackingCode: "AA123456789BR" }),
+});
+
+// marcar como entregue
+await authFetch(`${API}/api/me/seller/orders/${id}/deliver`, { method: "POST" });
+```
+
+---
+
+## 14. Como testar com curl
 
 ```bash
 API=https://hoko-api.onrender.com
@@ -1313,6 +1416,12 @@ curl -X POST $API/api/me/orders/checkout \
   -H 'Content-Type: application/json' \
   -d '{"addressId":"<id do endereço>","paymentMethod":"PIX"}'
 
+# Marcar venda como enviada (dono da loja)
+curl -X POST $API/api/me/seller/orders/{id}/ship \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"trackingCode":"AA123456789BR"}'
+
 # Carrinho (logado)
 curl $API/api/me/cart -H "Authorization: Bearer $TOKEN"
 curl -X POST $API/api/me/cart/items \
@@ -1329,7 +1438,7 @@ API=http://localhost:8080
 
 ---
 
-## 14. Pendências conhecidas
+## 15. Pendências conhecidas
 
 | Item | Impacto |
 |---|---|

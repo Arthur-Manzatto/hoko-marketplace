@@ -24,9 +24,13 @@ public record OrderResponseDTO(
         BigDecimal total,
         String sellerStoreName,
         String sellerSlug,
+        String buyerName,
         ShippingAddress shippingAddress,
         List<Item> items,
         PaymentInfo payment,
+        String trackingCode,
+        Instant shippedAt,
+        Instant deliveredAt,
         Instant createdAt,
         Instant updatedAt
 ) implements Serializable {
@@ -83,12 +87,16 @@ public record OrderResponseDTO(
                 entity.getTotal(),
                 entity.getSeller().getStoreName(),
                 entity.getSeller().getSlug(),
+                entity.getUser() == null ? null : entity.getUser().getName(),
                 new ShippingAddress(
                         entity.getShipStreet(), entity.getShipNumber(), entity.getShipComplement(),
                         entity.getShipNeighborhood(), entity.getShipCity(), entity.getShipState(),
                         entity.getShipZipCode()),
                 entity.getItems().stream().map(Item::new).toList(),
                 entity.getPayment() == null ? null : new PaymentInfo(entity.getPayment()),
+                entity.getTrackingCode(),
+                entity.getShippedAt(),
+                entity.getDeliveredAt(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt()
         );

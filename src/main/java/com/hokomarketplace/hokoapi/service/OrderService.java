@@ -142,7 +142,14 @@ public class OrderService {
 
     @Transactional
     public OrderResponseDTO cancel(UUID userId, UUID id) {
-        Order order = owned(userId, id);
+        return cancelAndRestock(owned(userId, id));
+    }
+
+    /**
+     * Cancela antes do envio: devolve o estoque e estorna (ou falha) o pagamento.
+     * Usado pelo comprador e pelo vendedor (SellerOrderService).
+     */
+    OrderResponseDTO cancelAndRestock(Order order) {
         if (order.getStatus() != OrderStatus.PENDING && order.getStatus() != OrderStatus.PAID) {
             throw new BusinessException(order.getStatus() == OrderStatus.CANCELED
                     ? "Order is already canceled"

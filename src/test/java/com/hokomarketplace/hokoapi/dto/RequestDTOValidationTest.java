@@ -67,6 +67,14 @@ class RequestDTOValidationTest {
         assertEquals(1, validator.validate(new CheckoutRequestDTO(addressId, null, null)).size());
     }
 
+    @Test
+    void trackingCodeIsOptionalAlphanumeric() {
+        assertTrue(validator.validate(new ShipOrderDTO(null)).isEmpty());
+        assertTrue(validator.validate(new ShipOrderDTO("AA123456789BR")).isEmpty());
+        assertEquals(1, validator.validate(new ShipOrderDTO("AA 123")).size());
+        assertEquals(1, validator.validate(new ShipOrderDTO("A".repeat(41))).size());
+    }
+
     private static AddressRequestDTO address(String state, String zip) {
         return new AddressRequestDTO("Casa", "Rua X", "1", null, "Centro", "Campinas", state, zip);
     }

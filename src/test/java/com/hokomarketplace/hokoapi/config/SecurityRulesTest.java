@@ -53,6 +53,7 @@ class SecurityRulesTest {
     @MockitoBean AddressService addressService;
     @MockitoBean CartService cartService;
     @MockitoBean OrderService orderService;
+    @MockitoBean SellerOrderService sellerOrderService;
 
     private final UUID userId = UUID.randomUUID();
 
@@ -200,6 +201,16 @@ class SecurityRulesTest {
         mvc.perform(post("/api/me/orders/checkout").with(user()).contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isCreated());
         verify(orderService).checkout(eq(userId), any());
+    }
+
+    @Test
+    void storeOrdersNeedLoginAndUseTheTokenOwner() throws Exception {
+        when(sellerOrderService.findMine(eq(userId), any(), any())).thenReturn(Page.empty());
+
+        mvc.perform(get("/api/me/seller/orders")).andExpect(status().isUnauthorized());
+
+        mvc.perform(get("/api/me/seller/orders").with(user())).andExpect(status().isOk());
+        verify(sellerOrderService).findMine(eq(userId), any(), any());
     }
 
     // ----------------------------------------------------------------- admin
