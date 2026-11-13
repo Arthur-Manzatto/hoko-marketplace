@@ -4,7 +4,9 @@ import com.hokomarketplace.hokoapi.dto.SellerRequestDTO;
 import com.hokomarketplace.hokoapi.entity.Seller;
 import com.hokomarketplace.hokoapi.entity.User;
 import com.hokomarketplace.hokoapi.repository.SellerRepository;
+import com.hokomarketplace.hokoapi.service.exception.BusinessException;
 import com.hokomarketplace.hokoapi.service.exception.ResourceNotFoundException;
+import com.hokomarketplace.hokoapi.util.DocumentUtils;
 import com.hokomarketplace.hokoapi.util.SearchUtils;
 import com.hokomarketplace.hokoapi.util.SlugUtils;
 import org.springframework.data.domain.Page;
@@ -85,9 +87,10 @@ public class SellerService {
             entity.setUser(user);
         }
         String storeName = dto.storeName().trim();
+        String document = validDocument(dto.document());
         entity.setStoreName(storeName);
         entity.setSlug(slugFor(storeName, entity.getId()));
-        entity.setDocument(dto.document().trim());
+        entity.setDocument(document);
         entity.setDeletedAt(null);
         return repository.saveAndFlush(entity);
     }
@@ -107,7 +110,10 @@ public class SellerService {
             entity.setStoreName(storeName);
             entity.setSlug(slugFor(storeName, entity.getId()));
         }
-        entity.setDocument(document);
+        // só valida o documento quando ele muda: lojas antigas com documento inválido ainda podem trocar o nome
+        if (!entity.getDocument().equals(document)) {
+            entity.setDocument(validDocument(document));
+        }
         return repository.saveAndFlush(entity);
     }
 
@@ -116,6 +122,15 @@ public class SellerService {
         Seller entity = getByUserId(userId, false);
         entity.setDeletedAt(Instant.now());
         repository.save(entity);
+    }
+
+    /** CPF/CNPJ com dígitos verificadores corretos, senão 422. */
+    private static String validDocument(String raw) {
+        String document = raw.trim();
+        if (!DocumentUtils.isValid(document)) {
+            throw new BusinessException("Invalid CPF or CNPJ");
+        }
+        return document;
     }
 
     private String slugFor(String name, UUID excludeId) {

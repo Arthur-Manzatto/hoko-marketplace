@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css"
+        integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <link rel="stylesheet" href="/css/style.css" type="text/css">
+
+    <link rel="icon" type="image/svg+xml" href="/img/logo.svg">
+
+    <title>Pedido | Hoko</title>
+</head>
+
+<body>
+
+    <!-- Header (igual em todas as páginas; gerado por scratchpad/pages/apply_shell.py) -->
+    <header class="topo">
+        <div class="container topo-linha">
+            <button class="topo-icone" id="sidebarToggle" type="button" aria-label="Abrir menu" aria-controls="sidebar" aria-expanded="false">
+                <i class="bi bi-list"></i>
+            </button>
+            <a href="/" class="topo-marca" aria-label="Hoko, página inicial">
+                <img src="/img/logo.svg" alt="Hoko" class="logo">
+            </a>
+            <form class="busca" role="search" data-search>
+                <div class="busca-campo">
+                    <i class="bi bi-search" aria-hidden="true"></i>
+                    <input type="search" placeholder="Buscar produtos..." aria-label="Buscar produtos">
+                </div>
+                <button class="busca-botao" type="button" data-search-button>Buscar</button>
+            </form>
+            <a href="/favoritos.html" class="topo-icone topo-favoritos" aria-label="Favoritos">
+                <i class="bi bi-heart"></i>
+                <span class="topo-selo" data-favorites-badge hidden></span>
+            </a>
+            <a href="/carrinho.html" class="topo-icone carrinho-link" aria-label="Carrinho">
+                <i class="bi bi-cart2"></i>
+                <span class="topo-selo carrinho-selo" data-cart-badge hidden></span>
+            </a>
+            <a href="/login.html" class="topo-entrar" id="loginLink" data-auth="pending">
+                <i class="bi bi-person"></i><span>Entrar</span>
+            </a>
+            <div class="profile-wrap" id="profileWrap" hidden>
+                <button class="profile-button" id="profileButton" type="button" aria-haspopup="menu"
+                    aria-expanded="false" aria-label="Menu do perfil">
+                    <span class="profile-initial" id="profileInitial" aria-hidden="true"></span>
+                </button>
+                <div class="profile-menu" id="profileMenu" role="menu" hidden>
+                    <div class="profile-menu-header">
+                        <span class="profile-menu-name" id="userName"></span>
+                    </div>
+                    <a class="profile-menu-item" href="/conta.html" role="menuitem">
+                        <i class="bi bi-person"></i> <span>Minha conta</span>
+                    </a>
+                    <a class="profile-menu-item" href="/pedidos.html" role="menuitem">
+                        <i class="bi bi-box-seam"></i> <span>Meus pedidos</span>
+                    </a>
+                    <a class="profile-menu-item" href="/minha-loja.html" role="menuitem" data-seller-link>
+                        <i class="bi bi-shop"></i> <span>Minha loja</span>
+                    </a>
+                    <div class="profile-menu-divider"></div>
+                    <button class="profile-menu-item profile-menu-item--danger" id="logoutButton" type="button"
+                        role="menuitem">
+                        <i class="bi bi-box-arrow-right"></i> <span>Sair</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Menu lateral: conteúdo montado pelo js/sidebar.js -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <aside class="sidebar" id="sidebar"></aside>
+
+
+    <section class="container pagina">
+        <nav class="produto-caminho" aria-label="Caminho de navegação">
+            <a href="/pedidos.html">Meus pedidos</a> <span aria-hidden="true">/</span> <span aria-current="page" id="order_crumb">Pedido</span>
+        </nav>
+        <div id="order_view" aria-live="polite"></div>
+    </section>
+    <footer id="site_footer"></footer>
+
+
+    <!-- Option 1: jQuery and Bootstrap Bundle (includes Popper) -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js"
+        integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-Fy6S3B9q64WdZWQUiU+q4/2Lc9npb8tCaSX9FK7E8HnRr0Jz8D6OP9dO5Vg3Q9ct"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script type="module" src="/js/sidebar.js"></script>
+    <script type="module" src="/js/order.js"></script>
+    <script type="module" src="/js/session.js"></script>
+
+</body>
+
+</html>

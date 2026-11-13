@@ -4,6 +4,7 @@ import com.hokomarketplace.hokoapi.dto.SellerRequestDTO;
 import com.hokomarketplace.hokoapi.entity.Seller;
 import com.hokomarketplace.hokoapi.entity.User;
 import com.hokomarketplace.hokoapi.repository.SellerRepository;
+import com.hokomarketplace.hokoapi.service.exception.BusinessException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -24,6 +25,10 @@ class SellerServiceTest {
 
     private final UUID userId = UUID.randomUUID();
 
+    // documentos com dígitos verificadores corretos (exemplos públicos, não são de ninguém)
+    private static final String VALID_CPF = "52998224725";
+    private static final String VALID_CNPJ = "11222333000181";
+
     @BeforeEach
     void setUp() {
         when(repository.saveAndFlush(any(Seller.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -36,7 +41,7 @@ class SellerServiceTest {
         when(repository.findBySlug("loja-boa")).thenReturn(Optional.of(other));
         when(repository.findBySlug("loja-boa-1")).thenReturn(Optional.empty());
 
-        Seller created = service.insert(userId, new SellerRequestDTO("  Loja Boa ", "12345678901"));
+        Seller created = service.insert(userId, new SellerRequestDTO("  Loja Boa ", VALID_CPF));
 
         assertEquals("Loja Boa", created.getStoreName());
         assertEquals("loja-boa-1", created.getSlug());
@@ -59,9 +64,9 @@ class SellerServiceTest {
         existing.setSlug("loja-boa");
         when(repository.findByUserIdActive(userId)).thenReturn(Optional.of(existing));
 
-        Seller updated = service.update(userId, new SellerRequestDTO("Loja Boa", "98765432100"));
+        Seller updated = service.update(userId, new SellerRequestDTO("Loja Boa", VALID_CNPJ));
 
-        assertEquals("98765432100", updated.getDocument());
+        assertEquals(VALID_CNPJ, updated.getDocument());
         assertEquals("loja-boa", updated.getSlug());
         verify(repository, never()).findBySlug(anyString());
     }
@@ -75,14 +80,14 @@ class SellerServiceTest {
         deleted.setDeletedAt(Instant.now());
         when(repository.findByUserId(userId)).thenReturn(Optional.of(deleted));
 
-        Seller reopened = service.insert(userId, new SellerRequestDTO("Loja Nova", "12345678901"));
+        Seller reopened = service.insert(userId, new SellerRequestDTO("Loja Nova", VALID_CPF));
 
         assertSame(deleted, reopened);
         assertEquals(oldId, reopened.getId());
         assertNull(reopened.getDeletedAt());
         assertEquals("Loja Nova", reopened.getStoreName());
         assertEquals("loja-nova", reopened.getSlug());
-        assertEquals("12345678901", reopened.getDocument());
+        assertEquals(VALID_CPF, reopened.getDocument());
     }
 
     @Test
@@ -91,11 +96,45 @@ class SellerServiceTest {
         Seller active = seller(UUID.randomUUID(), "Loja Ativa", "11111111111");
         when(repository.findByUserId(userId)).thenReturn(Optional.of(active));
 
-        Seller created = service.insert(userId, new SellerRequestDTO("Outra Loja", "12345678901"));
+        Seller created = service.insert(userId, new SellerRequestDTO("Outra Loja", VALID_CPF));
 
         // não reaproveita a loja ativa: vai como insert novo e o UNIQUE de user_id dá 409
         assertNotSame(active, created);
         assertNull(created.getId());
+    }
+
+    @Test
+    void insertRejectsDocumentWithWrongCheckDigits() {
+        when(userService.get(userId, false)).thenReturn(new User());
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> service.insert(userId, new SellerRequestDTO("Loja Boa", "12345678901")));
+
+        assertEquals("Invalid CPF or CNPJ", ex.getMessage());
+        verify(repository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void updateRejectsNewInvalidDocument() {
+        Seller existing = seller(UUID.randomUUID(), "Loja Boa", VALID_CPF);
+        when(repository.findByUserIdActive(userId)).thenReturn(Optional.of(existing));
+
+        assertThrows(BusinessException.class,
+                () -> service.update(userId, new SellerRequestDTO("Loja Boa", "11111111111")));
+        verify(repository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void updateNameKeepsOldDocumentEvenIfItIsInvalid() {
+        // lojas criadas antes da validação não ficam travadas
+        Seller existing = seller(UUID.randomUUID(), "Loja Boa", "12345678901");
+        when(repository.findByUserIdActive(userId)).thenReturn(Optional.of(existing));
+        when(repository.findBySlug(anyString())).thenReturn(Optional.empty());
+
+        Seller updated = service.update(userId, new SellerRequestDTO("Loja Nova", "12345678901"));
+
+        assertEquals("Loja Nova", updated.getStoreName());
+        assertEquals("12345678901", updated.getDocument());
     }
 
     private static Seller seller(UUID id, String name, String document) {

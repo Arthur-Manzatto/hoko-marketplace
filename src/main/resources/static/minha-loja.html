@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css"
+        integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <link rel="stylesheet" href="/css/style.css" type="text/css">
+
+    <link rel="icon" type="image/svg+xml" href="/img/logo.svg">
+
+    <title>Minha loja | Hoko</title>
+</head>
+
+<body>
+
+    <!-- Header (igual em todas as páginas; gerado por scratchpad/pages/apply_shell.py) -->
+    <header class="topo">
+        <div class="container topo-linha">
+            <button class="topo-icone" id="sidebarToggle" type="button" aria-label="Abrir menu" aria-controls="sidebar" aria-expanded="false">
+                <i class="bi bi-list"></i>
+            </button>
+            <a href="/" class="topo-marca" aria-label="Hoko, página inicial">
+                <img src="/img/logo.svg" alt="Hoko" class="logo">
+            </a>
+            <form class="busca" role="search" data-search>
+                <div class="busca-campo">
+                    <i class="bi bi-search" aria-hidden="true"></i>
+                    <input type="search" placeholder="Buscar produtos..." aria-label="Buscar produtos">
+                </div>
+                <button class="busca-botao" type="button" data-search-button>Buscar</button>
+            </form>
+            <a href="/favoritos.html" class="topo-icone topo-favoritos" aria-label="Favoritos">
+                <i class="bi bi-heart"></i>
+                <span class="topo-selo" data-favorites-badge hidden></span>
+            </a>
+            <a href="/carrinho.html" class="topo-icone carrinho-link" aria-label="Carrinho">
+                <i class="bi bi-cart2"></i>
+                <span class="topo-selo carrinho-selo" data-cart-badge hidden></span>
+            </a>
+            <a href="/login.html" class="topo-entrar" id="loginLink" data-auth="pending">
+                <i class="bi bi-person"></i><span>Entrar</span>
+            </a>
+            <div class="profile-wrap" id="profileWrap" hidden>
+                <button class="profile-button" id="profileButton" type="button" aria-haspopup="menu"
+                    aria-expanded="false" aria-label="Menu do perfil">
+                    <span class="profile-initial" id="profileInitial" aria-hidden="true"></span>
+                </button>
+                <div class="profile-menu" id="profileMenu" role="menu" hidden>
+                    <div class="profile-menu-header">
+                        <span class="profile-menu-name" id="userName"></span>
+                    </div>
+                    <a class="profile-menu-item" href="/conta.html" role="menuitem">
+                        <i class="bi bi-person"></i> <span>Minha conta</span>
+                    </a>
+                    <a class="profile-menu-item" href="/pedidos.html" role="menuitem">
+                        <i class="bi bi-box-seam"></i> <span>Meus pedidos</span>
+                    </a>
+                    <a class="profile-menu-item" href="/minha-loja.html" role="menuitem" data-seller-link>
+                        <i class="bi bi-shop"></i> <span>Minha loja</span>
+                    </a>
+                    <div class="profile-menu-divider"></div>
+                    <button class="profile-menu-item profile-menu-item--danger" id="logoutButton" type="button"
+                        role="menuitem">
+                        <i class="bi bi-box-arrow-right"></i> <span>Sair</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Menu lateral: conteúdo montado pelo js/sidebar.js -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <aside class="sidebar" id="sidebar"></aside>
+
+
+    <main class="container pagina">
+        <div class="pagina-cabecalho">
+            <span class="pagina-icone"><i class="bi bi-shop" aria-hidden="true"></i></span>
+            <div class="flex-grow-1">
+                <h1>Minha loja</h1>
+                <p>Visão geral do desempenho da sua loja.</p>
+            </div>
+            <div class="d-flex flex-wrap" style="gap:8px">
+                <a class="btn-contorno" href="/vendas.html"><i class="bi bi-receipt"></i> Vendas</a>
+                <a class="btn-contorno" href="/relatorios.html"><i class="bi bi-bar-chart"></i> Relatórios</a>
+                <a class="btn-custom" href="/produto-form.html"><i class="bi bi-plus-lg"></i> Novo produto</a>
+            </div>
+        </div>
+
+        <div class="banner loja-banner" id="store_banner">
+            <span class="loja-banner-icone"><i class="bi bi-shop" aria-hidden="true"></i></span>
+            <div class="flex-grow-1 min-w-0">
+                <h2 id="store_title"><span class="skeleton skeleton-title loja-sk"></span></h2>
+                <p id="store_since"></p>
+                <div class="banner-chips" id="store_chips"></div>
+            </div>
+            <div class="d-flex flex-wrap" style="gap:8px">
+                <a class="banner-acao banner-acao-claro" id="store_public_link" href="#" hidden><i class="bi bi-box-arrow-up-right"></i> Ver página pública</a>
+                <button class="banner-acao" type="button" data-goto-tab="settings">Editar loja</button>
+            </div>
+        </div>
+
+        <div class="pilulas mb-4" id="store_tabs" role="tablist">
+            <button class="pilula aba ativa" type="button" data-tab="overview">Visão geral</button>
+            <button class="pilula aba" type="button" data-tab="products">Produtos</button>
+            <button class="pilula aba" type="button" data-tab="settings">Configurações</button>
+        </div>
+
+        <div data-panel="overview">
+            <div class="row" id="summary_cards"></div>
+            <div class="row">
+                <section class="col-12 col-lg-6 mb-4">
+                    <div class="cartao h-100">
+                        <div class="cartao-cabecalho">
+                            <h2 class="cartao-titulo mb-0">Pedidos recentes</h2>
+                            <a class="link-pequeno" href="/vendas.html">Ver todos</a>
+                        </div>
+                        <div id="recent_orders"></div>
+                    </div>
+                </section>
+                <section class="col-12 col-lg-6 mb-4">
+                    <div class="cartao h-100">
+                        <div class="cartao-cabecalho">
+                            <h2 class="cartao-titulo mb-0">Estoque baixo</h2>
+                            <button class="link-pequeno" type="button" data-goto-tab="products">Gerenciar</button>
+                        </div>
+                        <div id="low_stock"></div>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <div data-panel="products" hidden>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <p class="filtros-total mb-0" id="my_products_count"></p>
+            </div>
+            <div class="cartao" id="my_products"></div>
+            <div class="text-center my-4">
+                <button class="btn filtros-mais" id="load_more" type="button" hidden>Carregar mais</button>
+            </div>
+        </div>
+
+        <div data-panel="settings" hidden>
+            <div class="row">
+                <div class="col-12 col-lg-6">
+                    <section class="cartao mb-4">
+                        <h2 class="cartao-titulo">Dados da loja</h2>
+                        <form id="store_form" novalidate>
+                            <p class="form-erro" role="alert" hidden></p>
+                            <div class="form-group">
+                                <label for="st_name">Nome da loja</label>
+                                <input class="form-control" id="st_name" name="storeName" minlength="3" maxlength="80" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="st_doc">CPF ou CNPJ</label>
+                                <input class="form-control" id="st_doc" name="document" inputmode="numeric" placeholder="000.000.000-00 ou 00.000.000/0000-00" required>
+                            </div>
+                            <button class="btn btn-custom" type="submit">Salvar</button>
+                        </form>
+                    </section>
+                </div>
+                <div class="col-12 col-lg-6">
+                    <section class="cartao zona-perigo">
+                        <h2 class="cartao-titulo">Fechar loja</h2>
+                        <p class="texto-suave">Os produtos saem da vitrine. Pedidos já feitos continuam no histórico. Dá para reabrir depois em "Vender".</p>
+                        <button class="btn btn-outline-danger" id="close_store" type="button">Fechar minha loja</button>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </main>
+    <footer id="site_footer"></footer>
+
+
+    <!-- Option 1: jQuery and Bootstrap Bundle (includes Popper) -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js"
+        integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-Fy6S3B9q64WdZWQUiU+q4/2Lc9npb8tCaSX9FK7E8HnRr0Jz8D6OP9dO5Vg3Q9ct"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script type="module" src="/js/sidebar.js"></script>
+    <script type="module" src="/js/my-store.js"></script>
+    <script type="module" src="/js/session.js"></script>
+
+</body>
+
+</html>

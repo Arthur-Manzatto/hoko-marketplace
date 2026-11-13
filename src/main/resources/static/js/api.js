@@ -68,6 +68,11 @@ export async function apiFetch(path, { method = "GET", body, headers = {} } = {}
 
     const payload = await response.json().catch(() => null);
 
+    // sem login ou token vencido: manda para o login e volta para esta página depois
+    if (response.status === 401) {
+        location.href = `/login.html?next=${encodeURIComponent(location.pathname + location.search)}`;
+    }
+
     if (!response.ok) {
         const error = new Error(payload?.message ?? `Erro ${response.status}`);
         error.status = response.status;

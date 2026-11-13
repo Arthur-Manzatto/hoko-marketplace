@@ -14,162 +14,168 @@
 
     <link rel="icon" type="image/svg+xml" href="/img/logo.svg">
 
-    <title>Hoko</title>
+    <title>Hoko | Tudo o que você procura</title>
 </head>
 
 <body>
 
-    <!--Menu Navegação-->
-    <nav class="navbar fixed-top">
-        <div class="container d-flex align-items-center justify-content-between text-dark">
-            <div class="d-flex align-items-center">
-                <button class="btn sidebar-toggle mr-2" id="sidebarToggle">
-                    <i class="bi bi-list"></i>
-                </button>
-                <a href="#" class="nav-brand">
-                    <img src="/img/logo.svg" alt="" class="img-fluid logo">
-                </a>
-            </div>
-            <div class="d-none d-lg-flex flex-grow-1 mx-4" style="max-width: 500px;">
-                <div class="input-group input-custom">
-                    <div class="input-group-prepend">
-                        <span class="input-group-text">
-                            <i class="bi bi-search"></i>
-                        </span>
-                    </div>
-
-                    <input type="text" class="form-control" placeholder="Buscar produtos...">
-
-                </div>
-                <button class="btn btn-custom ml-2">
-                    Buscar
-                </button>
-            </div>
-            <div class="d-flex align-items-center">
-                <button class="btn car-custom d-lg-none mr-1" type="button" data-toggle="collapse"
-                    data-target="#searchMobile">
-                    <i class="bi bi-search"></i>
-                </button>
-                <a href="#" class="btn car-custom mr-3">
-                    <i class="bi bi-cart2"></i>
-                </a>
-
-                <a href="/login.html" class="btn login-custom" id="loginLink" data-auth="pending">
-                    <i class="bi bi-person mr-1"></i>Entrar
-                </a>
-
-                <div class="profile-wrap" id="profileWrap" hidden>
-                    <button class="profile-button" id="profileButton" type="button" aria-haspopup="menu"
-                        aria-expanded="false" aria-label="Menu do perfil">
-                        <span class="profile-initial" id="profileInitial" aria-hidden="true"></span>
-                    </button>
-
-                    <div class="profile-menu" id="profileMenu" role="menu" hidden>
-                        <div class="profile-menu-header">
-                            <span class="profile-menu-name" id="userName"></span>
-                        </div>
-                        <button class="profile-menu-item" id="profileLink" type="button" role="menuitem">
-                            <i class="bi bi-person"></i> Perfil
-                        </button>
-                        <div class="profile-menu-divider"></div>
-                        <button class="profile-menu-item profile-menu-item--danger" id="logoutButton" type="button"
-                            role="menuitem">
-                            <i class="bi bi-box-arrow-right"></i> Sair
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-
-        <!--colappsado-->
-        <div class="collapse w-100 d-lg-none px-3 pb-2 mt-2 " id="searchMobile">
-            <div class="d-flex">
-                <div class="input-group input-custom">
-                    <div class="input-group-prepend">
-                        <span class="input-group-text">
-                            <i class="bi bi-search"></i>
-                        </span>
-                    </div>
-                    <input type="text" class="form-control" placeholder="Buscar produtos...">
-                </div>
-                <button class="btn btn-custom ml-2">Buscar</button>
-            </div>
-        </div>
-    </nav>
-
-    <!--Menu Lateral-->
-
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
-
-    <div class="sidebar" id="sidebar">
-        <div class="sidebar-header d-flex align-items-center justify-content-between">
-            <a href="#" class="nav-brand">
-                <img src="/img/logo.svg" alt="" class="img-fluid logo">
-            </a>
-            <button class="btn p-0" id="sidebarClose">
-                <i class="bi bi-x-lg"></i>
+    <!-- Header (igual em todas as páginas; gerado por scratchpad/pages/apply_shell.py) -->
+    <header class="topo">
+        <div class="container topo-linha">
+            <button class="topo-icone" id="sidebarToggle" type="button" aria-label="Abrir menu" aria-controls="sidebar" aria-expanded="false">
+                <i class="bi bi-list"></i>
             </button>
-        </div>
-
-    </div>
-
-    <section id="home" class="py-5">
-        <div class="container">
-            <div class="row align-items-center ">
-                <div class="col-md-6">
-                    <div class="custom-home">
-                        <h1>Tudo o que você procura, <br> <span style="color: #013095;">perto de você</span></h1>
-                        <p>Milhares de produtos em um só lugar. <br> Compre com segurança!!!</p>
+            <a href="/" class="topo-marca" aria-label="Hoko, página inicial">
+                <img src="/img/logo.svg" alt="Hoko" class="logo">
+            </a>
+            <form class="busca" role="search" data-search>
+                <div class="busca-campo">
+                    <i class="bi bi-search" aria-hidden="true"></i>
+                    <input type="search" placeholder="Buscar produtos..." aria-label="Buscar produtos">
+                </div>
+                <button class="busca-botao" type="button" data-search-button>Buscar</button>
+            </form>
+            <a href="/favoritos.html" class="topo-icone topo-favoritos" aria-label="Favoritos">
+                <i class="bi bi-heart"></i>
+                <span class="topo-selo" data-favorites-badge hidden></span>
+            </a>
+            <a href="/carrinho.html" class="topo-icone carrinho-link" aria-label="Carrinho">
+                <i class="bi bi-cart2"></i>
+                <span class="topo-selo carrinho-selo" data-cart-badge hidden></span>
+            </a>
+            <a href="/login.html" class="topo-entrar" id="loginLink" data-auth="pending">
+                <i class="bi bi-person"></i><span>Entrar</span>
+            </a>
+            <div class="profile-wrap" id="profileWrap" hidden>
+                <button class="profile-button" id="profileButton" type="button" aria-haspopup="menu"
+                    aria-expanded="false" aria-label="Menu do perfil">
+                    <span class="profile-initial" id="profileInitial" aria-hidden="true"></span>
+                </button>
+                <div class="profile-menu" id="profileMenu" role="menu" hidden>
+                    <div class="profile-menu-header">
+                        <span class="profile-menu-name" id="userName"></span>
                     </div>
-
+                    <a class="profile-menu-item" href="/conta.html" role="menuitem">
+                        <i class="bi bi-person"></i> <span>Minha conta</span>
+                    </a>
+                    <a class="profile-menu-item" href="/pedidos.html" role="menuitem">
+                        <i class="bi bi-box-seam"></i> <span>Meus pedidos</span>
+                    </a>
+                    <a class="profile-menu-item" href="/minha-loja.html" role="menuitem" data-seller-link>
+                        <i class="bi bi-shop"></i> <span>Minha loja</span>
+                    </a>
+                    <div class="profile-menu-divider"></div>
+                    <button class="profile-menu-item profile-menu-item--danger" id="logoutButton" type="button"
+                        role="menuitem">
+                        <i class="bi bi-box-arrow-right"></i> <span>Sair</span>
+                    </button>
                 </div>
-                <div class="col-md-6 ">
-                    <div class="img-home  ">
-                        <img src="/img/home1.png" alt="" class="w-100 h-100  ">
+            </div>
+        </div>
+    </header>
+
+    <!-- Menu lateral: conteúdo montado pelo js/sidebar.js -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main>
+        <!-- Hero -->
+        <section class="container hero">
+            <div>
+                <span class="hero-selo"><i class="bi bi-stars" aria-hidden="true"></i> Novo marketplace, feito pra você</span>
+                <h1>Tudo o que você procura, <span>perto de você.</span></h1>
+                <p class="hero-texto">
+                    Lojas independentes em um só lugar. Compre com segurança, pague em até
+                    <strong>12x</strong> e receba com <strong>frete grátis</strong> em todo o Brasil.
+                </p>
+                <form class="busca" role="search" data-search>
+                    <div class="busca-campo">
+                        <i class="bi bi-search" aria-hidden="true"></i>
+                        <input type="search" placeholder="O que você procura hoje?" aria-label="Buscar produtos">
                     </div>
+                    <button class="busca-botao" type="button" data-search-button>Buscar</button>
+                </form>
+                <div class="populares">
+                    <span>Populares:</span>
+                    <a class="popular" href="/todos-produtos.html?search=fone">Fone</a>
+                    <a class="popular" href="/todos-produtos.html?search=caneca">Caneca</a>
+                    <a class="popular" href="/todos-produtos.html?search=mouse">Mouse</a>
+                    <a class="popular" href="/todos-produtos.html?search=agenda">Agenda</a>
+                    <a class="popular" href="/todos-produtos.html?search=t%C3%AAnis">Tênis</a>
+                </div>
+                <div class="hero-numeros">
+                    <div><strong id="stat_products">—</strong><span>produtos</span></div>
+                    <div><strong id="stat_categories">—</strong><span>categorias</span></div>
+                    <div><strong>12x</strong><span>sem juros</span></div>
                 </div>
             </div>
-        </div>
-    </section>
+            <div class="hero-foto">
+                <div class="hero-foto-img">
+                    <img src="/img/home1.png" alt="Pessoa com sacolas de compras">
+                </div>
+                <div class="hero-flutuante cima">
+                    <i class="bi bi-truck" aria-hidden="true"></i>
+                    <div><strong>Frete grátis</strong><span>para todo o Brasil</span></div>
+                </div>
+                <div class="hero-flutuante baixo">
+                    <i class="bi bi-shield-check" aria-hidden="true"></i>
+                    <div><strong>Compra protegida</strong><span>pagamento seguro</span></div>
+                </div>
+            </div>
+        </section>
 
-
-    <section class="categoria-section py-4">
-        <div class="container">
-
-
-            <div class="d-flex justify-content-between align-items-end mb-4">
+        <!-- Categorias -->
+        <section class="container secao">
+            <div class="secao-cabecalho">
                 <div>
-                    <h2 class="categoria-titulo mb-1">Explore por categoria</h2>
-                    <p class="categoria-subtitulo mb-0">Ache o que precisa em segundos.</p>
+                    <h2 class="secao-titulo">Explore por categoria</h2>
+                    <p class="secao-subtitulo">Ache o que precisa em segundos.</p>
                 </div>
-                <a href="#" class="categoria-verTodas">Ver todas <i class="bi bi-chevron-right"></i></a>
+                <button class="categoria-verTodas btn btn-link p-0" type="button" data-open-sidebar>
+                    Ver todas <i class="bi bi-chevron-right"></i>
+                </button>
             </div>
+            <div class="categorias-grade" id="categories_row"></div>
+        </section>
 
-
-            <div class="row" id="categories_row">
-
-
-            </div>
-
-
-            <div class="d-flex justify-content-between align-items-end mb-4">
+        <!-- Banner -->
+        <section class="container secao">
+            <div class="banner banner-faixa">
                 <div>
-                    <h2 class="categoria-titulo mb-1">Ofertas Especiais</h2>
-                    <p class="categoria-subtitulo mb-0">Selecionados a dedo pra você hoje.</p>
+                    <p class="banner-rotulo">Em todo o site</p>
+                    <h3>Frete grátis e até 12x sem juros</h3>
+                    <p>Em qualquer produto, de qualquer loja da Hoko.</p>
                 </div>
-                <a href="#" class="categoria-verTodas">Ver todas <i class="bi bi-chevron-right"></i></a>
+                <a class="banner-cta" href="/todos-produtos.html">Ver produtos <i class="bi bi-arrow-right"></i></a>
             </div>
+        </section>
 
-            <div class="row" id="highlighted_products">
-                
-                
-                
+        <!-- Lançamentos -->
+        <section class="container secao">
+            <div class="secao-cabecalho">
+                <div>
+                    <h2 class="secao-titulo">Lançamentos</h2>
+                    <p class="secao-subtitulo">Os produtos que acabaram de chegar.</p>
+                </div>
+                <a href="/lancamentos.html" class="categoria-verTodas">Ver todos <i class="bi bi-chevron-right"></i></a>
             </div>
+            <div class="row grade-produtos" id="highlighted_products"></div>
+        </section>
 
+        <!-- Até R$ 50 -->
+        <section class="container secao pb-5">
+            <div class="secao-cabecalho">
+                <div>
+                    <h2 class="secao-titulo">Até R$ 50</h2>
+                    <p class="secao-subtitulo">Achados que cabem no bolso.</p>
+                </div>
+                <a href="/todos-produtos.html?maxPrice=50&sort=price,asc" class="categoria-verTodas">Ver todos <i class="bi bi-chevron-right"></i></a>
+            </div>
+            <div class="row grade-produtos" id="cheap_products"></div>
+        </section>
+    </main>
+    <footer id="site_footer"></footer>
 
-        </div>
-    </section>
 
 
 
@@ -198,7 +204,7 @@
         integrity="sha384-Fy6S3B9q64WdZWQUiU+q4/2Lc9npb8tCaSX9FK7E8HnRr0Jz8D6OP9dO5Vg3Q9ct"
         crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="/js/sidebar.js"></script>
+    <script type="module" src="/js/sidebar.js"></script>
     <script type="module" src="/js/index.js"></script>
     <script type="module" src="/js/session.js"></script>
 

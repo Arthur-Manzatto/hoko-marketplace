@@ -35,6 +35,8 @@ módulo JS da página (index.js, categories.js)
 | `js/session.js` | Navbar: troca "Entrar" pelo avatar quando está logado |
 | `js/sidebar.js` | Menu lateral (script comum, não módulo) |
 | `css/style.css` | Inclui o bloco "Carregamento: skeletons, fade e estados" |
+| `js/cards.js`, `filters.js`, `search.js` | Card de produto, filtros e busca da navbar (seções 6 e 11) |
+| Telas logadas | Carrinho, checkout, pedidos, conta, loja e vendas: ver a seção 12 |
 
 ### O HTML só tem a "caixa" vazia
 
@@ -391,19 +393,14 @@ function productCard(prod) {
 | `product-name` | `name` | Com `e()` |
 | `product-price` | `price` | Com `formatPrice` |
 
-### ⚠️ O que ainda é fixo no card
+### O que o card mostra (e o que não)
 
-Estes pedaços **não vêm da API**. Não copie para telas novas como se fossem dados reais:
-
-| Pedaço | Situação |
-|---|---|
-| Selo "Mais vendido" | Aparece em todo produto. Não existe contagem de vendas ainda |
-| Nota `4.8` | Inventada. Não existem avaliações ainda |
-| Preço antigo (`price * 1.2`) | Inventa um desconto de 20% que não existe. A API não tem preço promocional |
-| Coração (favoritar) | Sem ação. Não existe favoritos na API |
-| Botão "Adicionar" | Sem ação. Vai funcionar quando o carrinho (`/api/me/cart`) existir |
-
-Se quiser deixar o card honesto até lá, dá para trocar o selo por "Esgotado" quando `prod.quantity === 0` e tirar a nota e o preço antigo.
+- **Sem dado inventado:** sem "Mais vendido", nota ★ ou preço riscado. O card mostra a loja (`bi-shop` + `sellerStoreName`), o preço e "ou 12x de R$ X".
+- **Selo do canto (só informação real):** "Esgotado" (`quantity === 0`, botão desabilitado) → "Últimas unidades" (`quantity <= 3`) → "Novo" (só se o produto tiver `createdAt` de até 14 dias; a listagem não manda esse campo, então hoje aparece só onde o detalhe é usado, como em Favoritos).
+- **Estrutura:** `<article class="product-card">` com o nome num `<a class="product-link">` cujo `::after` cobre o card inteiro (o card todo abre o produto). O coração e o botão ficam com `z-index` acima, então não existe botão dentro de link.
+- **"Adicionar":** `data-add-to-cart="<id>"`. Um único listener no `document` (em `cards.js`) chama `addToCart(id, 1)` do `cart.js` com `withBusy`. Deslogado → login com `?next=`.
+- **Coração:** `data-favorite="<id>"`, tratado pelo `favorites.js` (seção 13).
+- `productCard(prod, { col })` aceita as classes da coluna (padrão `col-12 col-sm-6 col-md-4 col-lg-3`). Com a grade marcada `.grade-produtos`, o celular mostra 2 por linha.
 
 ---
 
@@ -582,3 +579,175 @@ O `productCard` e o `productImage` ficam em `js/cards.js`: importe de lá (`impo
 - **Estoque:** o select vai de 1 até `min(quantity, 10)`; `quantity = 0` mostra "Esgotado" e desabilita select e botões.
 - Os botões "Adicionar ao carrinho" / "Comprar agora" ainda não chamam a API (`POST /api/me/cart/items` exige login).
 
+
+---
+
+## 11. Filtros de produtos (`js/filters.js` + `js/price-range.js`)
+
+Usado em `categorias.html` (barra horizontal) e em `todos-produtos.html` (lateral). Os campos são lidos pelo `name`, todos opcionais:
+
+| Campo | Elemento | Onde |
+|---|---|---|
+| `search` | input hidden, preenchido pela busca da navbar | só em todos-produtos |
+| `categorySlug` | select (preenchido por `GET /api/categories`) | só em todos-produtos |
+| slider de preço | `#price_range` com 2 `input[type=range]` (`data-lo`, `data-hi`) | as duas |
+| `inStock` | checkbox | as duas |
+| `sort` | select (`name,asc`, `price,asc`, `price,desc`, `createdAt,desc`) | as duas |
+
+```js
+import { setupProductFilters } from "./filters.js";
+
+const products = setupProductFilters({
+    form, grid, moreButton, countEl, errorEl,
+    priceRoot: document.getElementById("price_range"),
+    base: { categorySlug: "eletronicos" },   // filtro fixo da página (não vai pra URL); todos-produtos não tem base
+});
+products.load();
+```
+
+- **Slider de preço:** os limites são o menor e o maior preço do que está sendo filtrado (2 chamadas `size=1` com `sort=price,asc` e `price,desc`), arredondados de 10 em 10. Mudar busca/categoria/estoque recalcula os limites e solta o preço. Filtra quando solta a bolinha; bolinha encostada na ponta não manda `minPrice`/`maxPrice`.
+- **URL:** `?search=&categorySlug=&minPrice=&maxPrice=&inStock=&sort=` — F5, voltar e link compartilhado mantêm a tela.
+- **Busca: qualquer `<form data-search>`** (header de todas as páginas, hero da home e banner do catálogo) com um `<input>` e um botão `[data-search-button]`. O `js/search.js` (importado pelo `session.js`) liga todas:
+  - enquanto digita (2+ letras, 250 ms de pausa) mostra até **4 sugestões** (`GET /api/products?search=&size=4`) com foto, categoria e preço; setas ↑/↓ + Enter abrem o produto, Esc fecha, clique fora fecha; resultados ficam em cache por termo e respostas atrasadas são descartadas;
+  - Enter sem sugestão marcada, "Buscar" ou "Ver todos os resultados" → `todos-produtos.html?search=`;
+  - **dentro** de `todos-produtos.html` a busca filtra ali mesmo (evento `hoko:search`, sem recarregar e mantendo os outros filtros) e aparece o chip "🔍 termo ✕" para remover a busca. A lateral não tem campo de busca próprio (só um `input hidden name="search"`).
+- Os "Ver todas" da home levam para `todos-produtos.html` (o dos destaques com `sort=createdAt,desc`).
+- "Carregar mais" de 12 em 12; sem resultado com filtro → "Nenhum produto com esses filtros" + "Limpar filtros".
+
+
+---
+
+## 12. Telas de logado (compra, conta e vendedor)
+
+### Peças compartilhadas
+
+| Arquivo | O que faz |
+|---|---|
+| `js/guard.js` | `requireLogin()`: sem sessão manda para `/login.html?next=<página atual>` e **trava** o resto do módulo (promise que nunca resolve). Toda tela logada termina com `await requireLogin(); load();` |
+| `js/auth.js` | Depois de entrar/cadastrar volta para o `?next=` (só aceita caminho relativo `/...`, nunca `//site`) |
+| `js/api.js` | `apiFetch` com 401 → login com `next` (token vencido) |
+| `js/cart.js` | `addToCart(productId, qty)`, `refreshCartBadge()`, `setCartBadge(n)` e `cartMessage(error)` (traduz os erros da API do carrinho) |
+| `js/address-form.js` | Form de endereço reaproveitado em Conta e Checkout: `setupAddressForm(box, { onSubmit, onCancel, submitLabel })` → `{ form, fill, showErrors, focus }`; também `addressText(a)` e `isDefaultAddress(a)` |
+| `js/order-view.js` | `orderDetailHtml(order, { role })`: linha do tempo, itens, entrega e pagamento. Usado em `pedido.html` (comprador) e `vendas.html` (vendedor); os botões ficam com cada página |
+| `js/ui.js` | `toast(msg, "ok"\|"erro"\|"info")`, `withBusy(botão, promise)`, `clearFieldErrors(form)`, `showFieldErrors(form, error, traduções)` (422 `errors[]` → `.is-invalid` no campo; resto → `.form-erro` no topo), `formatDate(iso, comHora)`, `statusBadge(status, "order"\|"payment")`, `skeletonRows(n)` |
+
+Navbar (todas as páginas): ícone do carrinho → `/carrinho.html` com o selo `[data-cart-badge]` (total de itens, atualizado pelo `session.js`); menu do avatar → Minha conta, Meus pedidos, Minha loja, Sair.
+
+### As telas
+
+| Página | JS | API | Observações |
+|---|---|---|---|
+| `lancamentos.html` | `launches.js` | `GET /api/products?sort=createdAt,desc` | Pública. `setupProductFilters` com `base: { sort }` e "Só com estoque" |
+| `favoritos.html` | `favorites-page.js` | `GET /api/products/{id}` (um por favorito, em paralelo) | Pública. Ids no `localStorage`; produto apagado (404) sai da lista; "Adicionar todos" ao carrinho |
+| `relatorios.html` | `reports.js` | `GET /api/me/seller/orders` (todas as páginas, `size=100`) | Calcula no navegador: faturamento e pedidos por mês (6 meses, barras em CSS), pedidos por status, tabela mês a mês |
+| `loja.html?slug=` | `store.js` | `GET /api/sellers/slug/{slug}`, produtos com `sellerId` | Pública. Cabeçalho da loja + filtros (mesmo `setupProductFilters`). O nome da loja na página do produto leva para cá |
+| `carrinho.html` | `cart-page.js` | `GET/DELETE /api/me/cart`, `PATCH/DELETE /items/{id}` | −/+ limitado a `min(stock, 99)`; item `available:false` fica apagado com "Indisponível" ou "Só restam N"; toda ação redesenha com o carrinho que volta na resposta |
+| `checkout.html` | `checkout.js` | carrinho, endereços, `POST /api/me/orders/checkout`, `POST /orders/{id}/pay` | 1) endereço (rádio, padrão marcado, "+ Novo endereço" inline) 2) PIX / Cartão (1–12x) / Boleto 3) revisão **agrupada por loja** (vira 1 pedido por loja). Confirmar fica desabilitado se tem item indisponível |
+| `pedidos.html` | `orders.js` | `GET /api/me/orders?status=` | Abas por status, "Carregar mais". `?novo=1` mostra "Pedido realizado!"; `?novo=pendente` avisa que falta pagar |
+| `pedido.html?id=` | `order.js` | `GET /api/me/orders/{id}`, `/pay`, `/cancel` | Linha do tempo + rastreio. "Pagar agora" (PENDING) e "Cancelar pedido" (PENDING/PAID) |
+| `conta.html` | `account.js` | `GET/PUT /api/me`, `/api/me/addresses` (+ `PATCH /{id}/default`) | Nome e telefone; e-mail só leitura. Endereços: editar, excluir, tornar padrão |
+| `vender.html` | `sell.js` | `GET /api/me`, `POST /api/me/seller` | Quem já tem loja vai direto para `minha-loja.html`. O mesmo POST reabre loja fechada. Documento: só dígitos (11 ou 14) |
+| `minha-loja.html?aba=` | `my-store.js` | `/api/me/seller`, `/seller/orders/summary`, `/seller/products` | Abas `overview` (faturamento, pendente, a despachar, total), `products` (estoque rápido com `PATCH /stock` ao sair do campo, editar, excluir) e `settings` (nome/documento, fechar loja). Sem loja (404) → `vender.html` |
+| `produto-form.html[?id=]` | `product-form.js` | `GET /api/products/{id}`, `POST/PUT /api/me/seller/products` | Fotos sobem do navegador direto para o Storage (`product-images/{userId}/{uuid}.ext`): JPG/PNG/WebP até 5 MB, no máximo 8, setas para reordenar (a 1ª é a capa). Ao salvar, apaga do Storage as fotos que saíram. Preço aceita `99,90` e `1.234,56` |
+| `vendas.html` | `sales.js` | `GET /api/me/seller/orders?status=`, `/{id}`, `/ship`, `/deliver`, `/cancel` | Abre na aba "A despachar" (PAID). Clique na linha expande o detalhe. Enviar com rastreio opcional (letras, números, hífen) |
+
+### Fluxo de compra
+
+```
+card / página do produto ── Adicionar ──► POST /api/me/cart/items ──► selo do carrinho
+        │ "Comprar agora" = adiciona + vai pro checkout
+        ▼
+carrinho.html ── Fechar pedido ──► checkout.html
+        │ POST /orders/checkout  →  1 pedido por loja (PENDING, estoque reservado)
+        │ POST /orders/{id}/pay  →  cada pedido vira PAID (pagamento simulado)
+        ▼
+pedidos.html?novo=1 ──► pedido.html?id=  (comprador acompanha / cancela)
+                              ▲
+vendas.html (vendedor) ── ship (rastreio) ──► SHIPPED ── deliver ──► DELIVERED
+```
+
+- Se o `pay` de algum pedido falhar, o pedido fica PENDING e a tela vai para `?novo=pendente`; dá para pagar depois em `pedido.html`.
+- Cancelar (comprador ou vendedor, enquanto PENDING/PAID) devolve o estoque e estorna o pagamento (`REFUNDED`).
+- A API não deixa comprar o próprio produto: para testar a compra, use uma conta que **não** é dona da loja.
+
+### Testando sem servidor de verdade
+
+As telas logadas dependem do back de carrinho/pedidos/vendas publicado no Render. Deslogado, todas redirecionam para o login com `next`. O CSS dessas telas fica no bloco "Telas internas" do `style.css`.
+
+
+---
+
+## 13. Visual (design do Figma) e casca das páginas
+
+O visual segue o design do Figma Make que está em `inspiration/` (React + Tailwind, **só referência**: não é usado pelo site). Aqui ele foi traduzido para CSS próprio, sem React e sem Tailwind. O Bootstrap 4 continua só pelo grid e pelos utilitários.
+
+### Tokens (`:root` no topo do `style.css`)
+
+| Token | Valor | Uso |
+|---|---|---|
+| `--azul` / `--azul-claro` / `--azul-claro-2` | `#013095` / `#eef3ff` / `#dbe4ff` | identidade, ícones em quadrado, botão "Adicionar ao carrinho" |
+| `--laranja` / `--laranja-claro` | `#FE6901` / `#fff3eb` | CTAs (Buscar, Adicionar, Comprar) |
+| `--fundo`, `--borda`, `--borda-forte` | `#f9fafb`, `#f1f3f6`, `#e5e7eb` | fundo da página e bordas |
+| `--texto`, `--cinza`, `--cinza-claro` | `#111827`, `#6b7280`, `#9ca3af` | títulos, texto, apoio |
+| `--raio`, `--raio-grande`, `--raio-botao` | 16, 24, 12px | cards, blocos grandes, botões |
+
+Para mudar uma cor do site, mude o token, não a regra.
+
+### Componentes
+
+| Classe | O que é |
+|---|---|
+| `.topo`, `.busca`, `.topo-icone`, `.topo-selo` | header sticky com blur; busca em pílula; ícones com selo (carrinho e favoritos) |
+| `.sidebar` + `.menu-*` | menu lateral (☰) |
+| `.rodape` | rodapé |
+| `.pagina-cabecalho` + `.pagina-icone` | título de página com ícone num quadrado azul-claro |
+| `.banner` (+ `.banner-rotulo`, `.banner-cta`, `.banner-chip`, `.loja-banner`) | bloco azul em gradiente |
+| `.pilulas` / `.pilula` (`.ativa`, ou `<label class="pilula">` com rádio dentro) | ordenação, filtros de status, abas |
+| `.numero-cartao` + `.numero-icone` (`.laranja`, `.verde`, `.vermelho`) | cards de número |
+| `.status-selo status-*` | selo de status com bolinha |
+| `.state-box` (via `showState`) | vazio/erro: ícone num círculo, título, texto (`text`) e botão |
+| `.btn-custom` (laranja), `.btn-azul`, `.btn-contorno`, `.btn-mini` | botões |
+
+### Casca: header, menu lateral e rodapé
+
+- **Header:** o bloco `<header class="topo">` + `#sidebarOverlay` + `<aside id="sidebar">` é idêntico em todas as páginas (menos `login.html`). Mudou em uma, copie o bloco inteiro para as outras (ou faça um replace no projeto todo).
+- **`js/sidebar.js`** (módulo, em todas as páginas):
+  - **monta o menu lateral** dentro do `<aside id="sidebar">` vazio. Ele tem o cartão do usuário (ou "Entrar"), Principal, **todas as categorias da API**, Minha conta e Vendedor. Vendedor mostra "Minha loja / Vendas / Relatórios", ou "Vender na Hoko" se não tiver loja: usa o `GET /api/me`, guardado 5 min no `sessionStorage` (`hoko:me`). Quem cria ou fecha a loja chama `forgetMe()`;
+  - **monta o rodapé** no `<footer id="site_footer">`;
+  - **abre e fecha o menu:** ☰, overlay e Esc. O evento `hoko:open-sidebar` abre de qualquer lugar (o "Ver todas" das categorias da home usa).
+- **Favoritos (`js/favorites.js`):** ids no `localStorage` (`hoko:favoritos`), sem login.
+  - Qualquer botão `[data-favorite="<id>"]` vira coração.
+  - O evento `hoko:favorites` atualiza os corações e o selo do header `[data-favorites-badge]`.
+
+### Comportamentos novos
+
+- **Catálogo:** no celular os filtros viram gaveta pela direita, com "Ver N produtos" e um contador de filtros ativos. O `setupProductFilters` aceita `onCount(total)` e `card: { col }`, e lê os campos por `form.elements`, então categoria e ordem podem ser `select` ou rádios/pílulas.
+- **Filtros:** a grade carrega **em paralelo** com os limites do slider. O slider fica como skeleton (`.price-range:not(.pronto)`) até os limites chegarem.
+- **Produto:**
+  - CEP com máscara e ViaCEP ("Frete grátis para Cidade/UF"); o form não navega mais;
+  - cartão "Vendido por" e "Compra garantida";
+  - "Você também pode gostar": 4 da mesma categoria, com estoque;
+  - no celular, os botões de compra ficam colados embaixo.
+- **Carrinho:** o selo do header dá um pulinho quando aumenta; o toast "Adicionado" tem o link "Ver carrinho".
+- **Configurações (`conta.html`):** "Alterar senha" usa `supabase.auth.updateUser({ password })`.
+- **Login:**
+  - sem os botões sociais (não há provider configurado);
+  - "Esqueceu sua senha?" chama `resetPasswordForEmail` com `redirectTo: /login.html?reset=1`, e na volta o form vira "Crie uma nova senha";
+  - **no Supabase (Authentication → URL Configuration) o endereço do site precisa estar em "Redirect URLs"** (`https://hoko-api.onrender.com/login.html` e, para testar local, `http://localhost:5500/login.html`).
+
+### CEP e CPF/CNPJ (`js/br.js`)
+
+- **`lookupCep(cep)`** → `{ street, neighborhood, city, state }`, ou `null` se o CEP não existe.
+  - Usa o ViaCEP; se ele cair, a BrasilAPI. Guarda em cache por CEP.
+  - Só lança erro se os dois serviços estiverem fora do ar.
+- **Formulário de endereço** (`address-form.js`, usado no checkout e em Configurações):
+  - ao completar os 8 números, preenche rua, bairro, cidade e UF e leva o cursor para o número;
+  - não apaga o que o usuário digitou à mão;
+  - CEP inexistente marca o campo e impede salvar.
+- **Página do produto:** o frete é calculado sozinho ao completar o CEP.
+- **`setupDocumentField(input)`** (em `vender.html` e nas configurações da loja):
+  - máscara de CPF (`000.000.000-00`) ou CNPJ (`00.000.000/0000-00`) conforme o tamanho;
+  - confere os dígitos verificadores enquanto digita ("CPF válido" / "CNPJ inválido") e bloqueia o envio se estiver errado;
+  - manda só os dígitos para a API.
+- **A API faz a mesma checagem** (`DocumentUtils` + `SellerService`): `422 "Invalid CPF or CNPJ"`. Na edição da loja só confere se o documento mudou, então lojas antigas com documento de teste ainda conseguem trocar o nome.
+- Para testar, use documentos de exemplo públicos: CPF `529.982.247-25`, CNPJ `11.222.333/0001-81`.

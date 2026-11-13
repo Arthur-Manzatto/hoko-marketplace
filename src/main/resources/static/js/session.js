@@ -1,4 +1,6 @@
 import { supabase } from "./supabase-client.js";
+import "./search.js"; // busca da navbar + sugestões (todas as páginas)
+import { refreshCartBadge } from "./cart.js";
 
 const loginLink      = document.querySelector("#loginLink");
 const profileWrap    = document.querySelector("#profileWrap");
@@ -40,6 +42,9 @@ renderSession(initialSession);
 
 supabase.auth.onAuthStateChange((event, session) => renderSession(session));
 
+// número de itens no ícone do carrinho (só com login)
+refreshCartBadge();
+
 profileButton.addEventListener("click", (event) => {
     event.stopPropagation();
     setMenuOpen(profileMenu.hidden);
@@ -53,10 +58,6 @@ document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") closeMenu();
 });
 
-document.querySelector("#profileLink")?.addEventListener("click", () => {
-    closeMenu();
-    alert("Perfil em breve.");
-});
 
 document.querySelector("#logoutButton")?.addEventListener("click", async () => {
     closeMenu();

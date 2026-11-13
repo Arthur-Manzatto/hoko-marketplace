@@ -729,7 +729,7 @@ Cada usuário pode ter **uma** loja. Há duas visões:
   "userId": "c3d4e5f6-a7b8-9012-cdef-123456789012",
   "storeName": "Hoko Store",
   "slug": "hoko-store",
-  "document": "12345678901",
+  "document": "52998224725",
   "createdAt": "2026-10-05T16:53:12Z",
   "updatedAt": "2026-10-05T16:53:12Z",
   "deletedAt": null
@@ -743,14 +743,14 @@ O `slug` é gerado a partir do `storeName`, como nas categorias. Se já existir,
 ```json
 {
   "storeName": "Hoko Store",
-  "document": "12345678901"
+  "document": "52998224725"
 }
 ```
 
 | Campo | Obrigatório | Limite | Validação |
 |---|---|---|---|
 | `storeName` | **sim** | 80 | Entre 3 e 80 caracteres |
-| `document` | **sim** | 14 | Só dígitos: 11 (CPF) ou 14 (CNPJ). Único entre lojas ativas |
+| `document` | **sim** | 14 | Só dígitos: 11 (CPF) ou 14 (CNPJ), **com dígitos verificadores válidos** (senão `422 "Invalid CPF or CNPJ"`). Único entre lojas ativas. No `PUT`, só é conferido se mudou |
 
 ### Vitrine
 
@@ -771,8 +771,8 @@ const loja = await res.json();
 
 ```
 GET    /api/me/seller   → 200 | 404 se o usuário não tem loja
-POST   /api/me/seller   → 201 | 409 se já tem loja ativa ou documento em uso
-PUT    /api/me/seller   → 200 | 409 documento em uso
+POST   /api/me/seller   → 201 | 409 se já tem loja ativa ou documento em uso | 422 CPF/CNPJ inválido
+PUT    /api/me/seller   → 200 | 409 documento em uso | 422 CPF/CNPJ novo inválido
 DELETE /api/me/seller   → 204 (soft-delete; os produtos da loja também são marcados como deletados)
 ```
 
@@ -780,7 +780,7 @@ DELETE /api/me/seller   → 204 (soft-delete; os produtos da loja também são m
 const res = await authFetch(`${API}/api/me/seller`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ storeName: 'Hoko Store', document: '12345678901' }),
+  body: JSON.stringify({ storeName: 'Hoko Store', document: '52998224725' }),
 });
 ```
 

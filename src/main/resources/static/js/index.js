@@ -1,59 +1,69 @@
+// Home: categorias, números do hero e duas vitrines (lançamentos e até R$ 50).
 import { getJson, getJsonCached } from "./api.js";
 import { escapeHtml as e, showContent, showError, showSkeleton, showState } from "./ui.js";
 import { productCard } from "./cards.js";
 
-const categories_row = document.getElementById("categories_row");
-const productHL_row = document.getElementById("highlighted_products");
+const categoriesBox = document.getElementById("categories_row");
+const statCategories = document.getElementById("stat_categories");
+const statProducts = document.getElementById("stat_products");
+
+// "Ver todas" das categorias abre o menu lateral, que lista todas
+document.querySelector("[data-open-sidebar]")?.addEventListener("click", () =>
+    document.dispatchEvent(new Event("hoko:open-sidebar")));
 
 // ---------------------------------------------------------------- categorias
 
 function categoryCard(cat) {
     return `
-        <div class="col-6 col-md-3 col-lg-custom mb-3">
-            <a href="/categorias.html?slug=${encodeURIComponent(cat.slug)}" class="categoria-card">
-                <div class="categoria-icon">
-                    <i class="bi ${e(cat.icon)}"></i>
-                </div>
-                <span class="categoria-nome">${e(cat.name)}</span>
-            </a>
-        </div>`;
+        <a href="/categorias.html?slug=${encodeURIComponent(cat.slug)}" class="categoria-card">
+            <span class="categoria-icon"><i class="bi ${e(cat.icon)}" aria-hidden="true"></i></span>
+            <span class="categoria-nome">${e(cat.name)}</span>
+        </a>`;
 }
 
 function renderCategories(page) {
+    statCategories.textContent = page.totalElements;
     if (page.content.length === 0) {
-        showState(categories_row, { message: "Nenhuma categoria cadastrada ainda." });
+        showState(categoriesBox, { message: "Nenhuma categoria cadastrada ainda." });
+        categoriesBox.classList.remove("categorias-grade");
         return;
     }
-    showContent(categories_row, page.content.map(categoryCard).join(""));
+    showContent(categoriesBox, page.content.slice(0, 8).map(categoryCard).join(""));
 }
 
-async function carregarCategorias() {
-    showSkeleton(categories_row, "category", 8);
+async function loadCategories() {
+    showSkeleton(categoriesBox, "category", 8);
     try {
-        // categorias mudam pouco: com cache, a 2ª visita mostra na hora
-        await getJsonCached("/api/categories?size=8&sort=name,asc", renderCategories);
+        // mesma chamada do menu lateral: as duas usam a mesma cópia em cache
+        await getJsonCached("/api/categories?size=50&sort=name,asc", renderCategories);
     } catch (error) {
         console.error("Erro ao carregar categorias:", error);
-        showError(categories_row, carregarCategorias);
+        categoriesBox.classList.remove("categorias-grade");
+        showError(categoriesBox, () => { categoriesBox.classList.add("categorias-grade"); loadCategories(); });
     }
 }
 
-// ------------------------------------------------------------------ produtos
+// ------------------------------------------------------------------ vitrines
 
-async function carregarHighlights() {
-    showSkeleton(productHL_row, "product", 4);
+async function loadShelf(box, query, emptyMessage, onPage) {
+    showSkeleton(box, "product", 4);
     try {
-        const page = await getJson("/api/products?categorySlug=eletronicos&page=0&size=4&sort=name,asc");
+        const page = await getJson(`/api/products?${query}`);
+        onPage?.(page);
         if (page.content.length === 0) {
-            showState(productHL_row, { icon: "bi-bag", message: "Nenhum produto por aqui ainda." });
+            showState(box, { icon: "bi-bag", message: emptyMessage });
             return;
         }
-        showContent(productHL_row, page.content.map(productCard).join(""));
+        showContent(box, page.content.map(p => productCard(p)).join(""));
     } catch (error) {
         console.error("Erro ao carregar produtos:", error);
-        showError(productHL_row, carregarHighlights);
+        showError(box, () => loadShelf(box, query, emptyMessage, onPage));
     }
 }
 
-carregarCategorias();
-carregarHighlights();
+loadCategories();
+loadShelf(document.getElementById("highlighted_products"),
+    "page=0&size=8&sort=createdAt,desc", "Nenhum produto por aqui ainda.",
+    (page) => { statProducts.textContent = page.totalElements.toLocaleString("pt-BR"); });
+loadShelf(document.getElementById("cheap_products"),
+    "page=0&size=4&maxPrice=50&inStock=true&sort=price,desc", "Nenhum produto até R$ 50 agora.");
